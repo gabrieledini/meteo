@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>METEO::VIAREGGIO</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e0a; --panel:#0d140d; --phos:#33ff66; --phos-dim:#1f8c3d;
+    --amber:#ffb000; --cyan:#33d6ff; --red:#ff4d4d; --line:#143d1f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--phos);font-family:'IBM Plex Mono',monospace}
+  body{
+    min-height:100vh;padding:18px;
+    background-image:radial-gradient(ellipse at 50% 0%, #0f1a0f 0%, #060906 80%);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 2px,rgba(0,0,0,.18) 3px,rgba(0,0,0,0) 4px);
+    mix-blend-mode:multiply;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:98;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%);
+  }
+  .wrap{max-width:1100px;margin:0 auto;position:relative;z-index:1}
+  h1{
+    font-family:'VT323',monospace;font-size:clamp(34px,7vw,64px);
+    color:var(--phos);letter-spacing:3px;text-shadow:0 0 8px var(--phos),0 0 22px var(--phos-dim);
+    line-height:.95;
+  }
+  .sub{font-size:13px;color:var(--phos-dim);margin:4px 0 18px;letter-spacing:1px}
+  .blink{animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .panel{
+    border:1px solid var(--line);background:var(--panel);
+    padding:16px;margin-bottom:16px;position:relative;
+    box-shadow:inset 0 0 30px rgba(51,255,102,.04);
+  }
+  .panel h2{
+    font-family:'VT323',monospace;font-size:24px;color:var(--amber);
+    text-shadow:0 0 6px rgba(255,176,0,.5);letter-spacing:2px;margin-bottom:12px;
+    border-bottom:1px dashed var(--line);padding-bottom:6px;
+  }
+  .now-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{border:1px solid var(--line);padding:12px;background:#0a110a}
+  .stat .lbl{font-size:11px;color:var(--phos-dim);letter-spacing:1px;text-transform:uppercase}
+  .stat .val{font-family:'VT323',monospace;font-size:38px;line-height:1;margin-top:4px;color:var(--phos);text-shadow:0 0 8px var(--phos-dim)}
+  .stat .val small{font-size:16px;color:var(--phos-dim)}
+  .stat.hi .val{color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.4)}
+  .stat.sea .val{color:var(--cyan);text-shadow:0 0 8px rgba(51,214,255,.4)}
+  .ascii-icon{font-family:'VT323',monospace;font-size:54px;line-height:1;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+  .cond-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .cond-desc{font-size:14px;color:var(--phos)}
+  .charts{display:grid;grid-template-columns:1fr;gap:16px}
+  .chart-box{height:260px;position:relative}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{border:1px solid var(--line);padding:5px 7px;text-align:center}
+  th{color:var(--amber);font-weight:600;letter-spacing:1px}
+  td.t{color:var(--phos)}
+  .scroll{overflow-x:auto}
+  .err{color:var(--red);font-size:14px}
+  .footer{font-size:11px;color:var(--phos-dim);text-align:center;margin-top:8px;letter-spacing:1px}
+  a{color:var(--cyan)}
+  .arrow{display:inline-block;font-size:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>METEO :: VIAREGGIO<span class="blink">_</span></h1>
+  <div class="sub" id="coords">43.87°N 10.25°E &middot; LAT.TIRRENICA &middot; caricamento dati...</div>
+
+  <div class="panel">
+    <h2>// CONDIZIONI ATTUALI</h2>
+    <div class="cond-row">
+      <div class="ascii-icon" id="icon">...</div>
+      <div>
+        <div class="cond-desc" id="cond-desc">Connessione a Open-Meteo...</div>
+        <div class="sub" id="cond-time"></div>
+      </div>
+    </div>
+    <div class="now-grid" style="margin-top:14px">
+      <div class="stat"><div class="lbl">Temperatura</div><div class="val" id="s-temp">--<small>°C</small></div></div>
+      <div class="stat"><div class="lbl">Percepita</div><div class="val" id="s-app">--<small>°C</small></div></div>
+      <div class="stat hi"><div class="lbl">Umidità</div><div class="val" id="s-hum">--<small>%</small></div></div>
+      <div class="stat"><div class="lbl">Vento</div><div class="val" id="s-wind">--<small>km/h</small></div></div>
+      <div class="stat"><div class="lbl">Raffiche</div><div class="val" id="s-gust">--<small>km/h</small></div></div>
+      <div class="stat"><div class="lbl">Direzione</div><div class="val" id="s-dir">--</div></div>
+      <div class="stat"><div class="lbl">Pressione</div><div class="val" id="s-pres" style="font-size:28px">--<small>hPa</small></div></div>
+      <div class="stat sea"><div class="lbl">Onde</div><div class="val" id="s-wave">--<small>m</small></div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>// TEMPERATURA &middot; 48H+</h2>
+    <div class="chart-box"><canvas id="chTemp"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>// VENTO &middot; 48H+</h2>
+    <div class="chart-box"><canvas id="chWind"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>// METEO MARE &middot; 48H+</h2>
+    <div class="chart-box"><canvas id="chSea"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>// TABELLA ORARIA</h2>
+    <div class="scroll"><table id="tbl"><tbody><tr><td class="err">In attesa dati...</td></tr></tbody></table></div>
+  </div>
+
+  <div class="footer">SORGENTE: open-meteo.com &middot; aggiornato <span id="upd">--</span> &middot; nessuna API key richiesta</div>
+</div>
+
+<script>
+const LAT=43.8716, LON=10.2306;
+const WMO={0:["Sereno","\u2600"],1:["Prev. sereno","\u2600"],2:["Parz. nuvoloso","\u26C5"],3:["Coperto","\u2601"],
+45:["Nebbia","\u2592"],48:["Nebbia gelata","\u2592"],51:["Pioviggine","\u2581"],53:["Pioviggine","\u2582"],55:["Pioviggine int.","\u2583"],
+61:["Pioggia debole","\u2602"],63:["Pioggia","\u2602"],65:["Pioggia forte","\u2614"],66:["Pioggia gelata","\u2744"],67:["Pioggia gelata","\u2744"],
+71:["Neve debole","\u2744"],73:["Neve","\u2744"],75:["Neve forte","\u2744"],77:["Granuli neve","\u2744"],
+80:["Rovesci","\u2614"],81:["Rovesci","\u2614"],82:["Rovesci violenti","\u26C8"],85:["Rovesci neve","\u2744"],86:["Rovesci neve","\u2744"],
+95:["Temporale","\u26A1"],96:["Temporale+grandine","\u26C8"],99:["Temporale+grandine","\u26C8"]};
+function wmo(c){return WMO[c]||["Sconosciuto","?"]}
+function dirTxt(d){const a=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];return a[Math.round(d/22.5)%16]}
+function fmtH(iso){const d=new Date(iso);return d.toLocaleString("it-IT",{weekday:"short",hour:"2-digit",minute:"2-digit"})}
+
+const PHOS="#33ff66",AMBER="#ffb000",CYAN="#33d6ff",RED="#ff4d4d",GRID="rgba(51,255,102,.08)",DIM="#1f8c3d";
+Chart.defaults.font.family="'IBM Plex Mono',monospace";
+Chart.defaults.color=DIM;Chart.defaults.font.size=10;
+
+function baseOpts(extra={}){
+  return {responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+    plugins:{legend:{labels:{color:PHOS,boxWidth:12}},tooltip:{backgroundColor:"#0a110a",borderColor:DIM,borderWidth:1}},
+    scales:Object.assign({x:{grid:{color:GRID},ticks:{maxRotation:60,minRotation:60,autoSkip:true,maxTicksLimit:16}}},extra)}
+}
+
+async function load(){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}`+
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,wind_gusts_10m,wind_direction_10m`+
+    `&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m`+
+    `&timezone=Europe%2FRome&forecast_days=3`;
+  const marineUrl=`https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}`+
+    `&current=wave_height,wave_direction,wave_period,sea_surface_temperature`+
+    `&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature&timezone=Europe%2FRome&forecast_days=3`;
+
+  let w,m=null;
+  try{ w=await (await fetch(url)).json(); }
+  catch(e){ document.getElementById("cond-desc").innerHTML='<span class="err">ERRORE rete: '+e.message+'</span>'; return; }
+  try{ m=await (await fetch(marineUrl)).json(); }catch(e){ m=null; }
+
+  // --- correnti ---
+  const c=w.current, [desc,ic]=wmo(c.weather_code);
+  document.getElementById("icon").textContent=ic;
+  document.getElementById("cond-desc").textContent=desc;
+  document.getElementById("cond-time").textContent=fmtH(c.time);
+  document.getElementById("coords").innerHTML=`${LAT}°N ${LON}°E &middot; VIAREGGIO (LU) &middot; LAT.TIRRENICA`;
+  document.getElementById("s-temp").innerHTML=Math.round(c.temperature_2m)+'<small>°C</small>';
+  document.getElementById("s-app").innerHTML=Math.round(c.apparent_temperature)+'<small>°C</small>';
+  document.getElementById("s-hum").innerHTML=c.relative_humidity_2m+'<small>%</small>';
+  document.getElementById("s-wind").innerHTML=Math.round(c.wind_speed_10m)+'<small>km/h</small>';
+  document.getElementById("s-gust").innerHTML=Math.round(c.wind_gusts_10m)+'<small>km/h</small>';
+  document.getElementById("s-dir").innerHTML='<span class="arrow" style="transform:rotate('+c.wind_direction_10m+'deg)">\u2191</span> '+dirTxt(c.wind_direction_10m);
+  document.getElementById("s-pres").innerHTML=Math.round(c.surface_pressure)+'<small>hPa</small>';
+  if(m&&m.current){document.getElementById("s-wave").innerHTML=(m.current.wave_height??"--")+'<small>m</small>';}
+  else{document.getElementById("s-wave").innerHTML='--';}
+  document.getElementById("upd").textContent=new Date().toLocaleTimeString("it-IT");
+
+  // --- serie orarie (limita a 48h+ -> 60 punti) ---
+  const N=Math.min(w.hourly.time.length,60);
+  const labels=w.hourly.time.slice(0,N).map(fmtH);
+  const temp=w.hourly.temperature_2m.slice(0,N);
+  const app=w.hourly.apparent_temperature.slice(0,N);
+  const prec=w.hourly.precipitation_probability.slice(0,N);
+  const wind=w.hourly.wind_speed_10m.slice(0,N);
+  const gust=w.hourly.wind_gusts_10m.slice(0,N);
+
+  new Chart(document.getElementById("chTemp"),{type:"line",
+    data:{labels,datasets:[
+      {label:"Temperatura °C",data:temp,borderColor:AMBER,backgroundColor:"rgba(255,176,0,.08)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
+      {label:"Percepita °C",data:app,borderColor:PHOS,borderDash:[4,3],tension:.35,pointRadius:0,borderWidth:1.5},
+      {label:"Prob. pioggia %",data:prec,borderColor:CYAN,yAxisID:"y1",tension:.3,pointRadius:0,borderWidth:1.5}
+    ]},
+    options:baseOpts({y:{grid:{color:GRID},ticks:{color:AMBER},title:{display:true,text:"°C",color:AMBER}},
+      y1:{position:"right",min:0,max:100,grid:{drawOnChartArea:false},ticks:{color:CYAN},title:{display:true,text:"% pioggia",color:CYAN}}})});
+
+  new Chart(document.getElementById("chWind"),{type:"line",
+    data:{labels,datasets:[
+      {label:"Vento km/h",data:wind,borderColor:PHOS,backgroundColor:"rgba(51,255,102,.08)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
+      {label:"Raffiche km/h",data:gust,borderColor:RED,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[5,3]}
+    ]},
+    options:baseOpts({y:{grid:{color:GRID},ticks:{color:PHOS},title:{display:true,text:"km/h",color:PHOS},beginAtZero:true})});
+
+  // --- mare ---
+  const seaBox=document.getElementById("chSea");
+  if(m&&m.hourly&&m.hourly.wave_height){
+    const Nm=Math.min(m.hourly.time.length,60);
+    const ml=m.hourly.time.slice(0,Nm).map(fmtH);
+    const wave=m.hourly.wave_height.slice(0,Nm);
+    const period=m.hourly.wave_period.slice(0,Nm);
+    const sst=m.hourly.sea_surface_temperature.slice(0,Nm);
+    new Chart(seaBox,{type:"line",
+      data:{labels:ml,datasets:[
+        {label:"Altezza onde m",data:wave,borderColor:CYAN,backgroundColor:"rgba(51,214,255,.12)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
+        {label:"Periodo onde s",data:period,borderColor:PHOS,yAxisID:"y1",tension:.35,pointRadius:0,borderWidth:1.5},
+        {label:"Temp. mare °C",data:sst,borderColor:AMBER,yAxisID:"y1",tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]}
+      ]},
+      options:baseOpts({y:{grid:{color:GRID},ticks:{color:CYAN},title:{display:true,text:"m",color:CYAN},beginAtZero:true},
+        y1:{position:"right",grid:{drawOnChartArea:false},ticks:{color:PHOS},title:{display:true,text:"s / °C",color:PHOS}})});
+  } else {
+    seaBox.parentElement.innerHTML='<div class="err">Dati marini non disponibili al momento (marine-api).</div>';
+  }
+
+  // --- tabella ---
+  let html='<thead><tr><th>Ora</th><th>°C</th><th>Perc.</th><th>UR%</th><th>Pioggia%</th><th>Vento</th><th>Raff.</th><th>Dir</th><th>Cielo</th></tr></thead><tbody>';
+  for(let i=0;i<N;i++){
+    const [d,ic]=wmo(w.hourly.weather_code[i]);
+    html+=`<tr><td class="t">${fmtH(w.hourly.time[i])}</td><td>${Math.round(temp[i])}</td><td>${Math.round(app[i])}</td>`+
+      `<td>${w.hourly.relative_humidity_2m[i]}</td><td>${prec[i]}</td><td>${Math.round(wind[i])}</td><td>${Math.round(gust[i])}</td>`+
+      `<td>${dirTxt(w.hourly.wind_direction_10m[i])}</td><td title="${d}">${ic}</td></tr>`;
+  }
+  html+='</tbody>';
+  document.getElementById("tbl").innerHTML=html;
+}
+load();
+</script>
+</body>
+</html>
