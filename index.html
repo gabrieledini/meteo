@@ -2,15 +2,30 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
 <title>METEO::VIAREGGIO</title>
-<meta name="theme-color" content="#0a0e0a">
+<meta name="theme-color" content="#0a0e0a" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0e0a" media="(prefers-color-scheme: dark)">
 <meta name="description" content="Meteo e meteo mare di Viareggio, previsioni 48h+, stile terminale CRT.">
+<meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
+
+<!-- PWA Android / Chromium -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Meteo VR">
+
+<!-- PWA iOS / Safari -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Meteo VR">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+
+<!-- Favicon fallback -->
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="shortcut icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -21,8 +36,12 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--phos);font-family:'IBM Plex Mono',monospace}
   body{
-    min-height:100vh;padding:18px;
+    min-height:100vh;
+    padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
     background-image:radial-gradient(ellipse at 50% 0%, #0f1a0f 0%, #060906 80%);
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+    overscroll-behavior-y:none;
   }
   body::after{
     content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
