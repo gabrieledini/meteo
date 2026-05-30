@@ -2,7 +2,7 @@
   "name": "Meteo Viareggio",
   "short_name": "Meteo VR",
   "description": "Meteo e meteo mare di Viareggio, previsioni 48h+, stile terminale CRT.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
