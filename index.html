@@ -128,6 +128,7 @@ const WMO={0:["Sereno","\u2600"],1:["Prev. sereno","\u2600"],2:["Parz. nuvoloso"
 function wmo(c){return WMO[c]||["Sconosciuto","?"]}
 function dirTxt(d){const a=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];return a[Math.round(d/22.5)%16]}
 function fmtH(iso){const d=new Date(iso);return d.toLocaleString("it-IT",{weekday:"short",hour:"2-digit",minute:"2-digit"})}
+function R(v){return v==null?"--":Math.round(v)}
 
 const PHOS="#33ff66",AMBER="#ffb000",CYAN="#33d6ff",RED="#ff4d4d",GRID="rgba(51,255,102,.08)",DIM="#1f8c3d";
 Chart.defaults.font.family="'IBM Plex Mono',monospace";
@@ -149,9 +150,23 @@ async function load(){
     `&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature&timezone=Europe%2FRome&forecast_days=3`;
 
   let w,m=null;
-  try{ w=await (await fetch(url)).json(); }
-  catch(e){ document.getElementById("cond-desc").innerHTML='<span class="err">ERRORE rete: '+e.message+'</span>'; return; }
-  try{ m=await (await fetch(marineUrl)).json(); }catch(e){ m=null; }
+  try{
+    const r=await fetch(url);
+    w=await r.json();
+    if(!r.ok || w.error){ throw new Error(w.reason||("HTTP "+r.status)); }
+    if(!w.current || !w.hourly){ throw new Error("risposta priva di dati attesi"); }
+  }
+  catch(e){
+    console.error("Open-Meteo forecast:",e);
+    document.getElementById("cond-desc").innerHTML='<span class="err">ERRORE meteo: '+e.message+'</span>';
+    document.getElementById("tbl").innerHTML='<tbody><tr><td class="err">Impossibile caricare i dati. Apri la console (F12) per il dettaglio.</td></tr></tbody>';
+    return;
+  }
+  try{
+    const rm=await fetch(marineUrl);
+    m=await rm.json();
+    if(!rm.ok || m.error){ console.warn("marine:",m.reason||rm.status); m=null; }
+  }catch(e){ console.warn("marine fetch fallita:",e); m=null; }
 
   // --- correnti ---
   const c=w.current, [desc,ic]=wmo(c.weather_code);
@@ -159,13 +174,13 @@ async function load(){
   document.getElementById("cond-desc").textContent=desc;
   document.getElementById("cond-time").textContent=fmtH(c.time);
   document.getElementById("coords").innerHTML=`${LAT}°N ${LON}°E &middot; VIAREGGIO (LU) &middot; LAT.TIRRENICA`;
-  document.getElementById("s-temp").innerHTML=Math.round(c.temperature_2m)+'<small>°C</small>';
-  document.getElementById("s-app").innerHTML=Math.round(c.apparent_temperature)+'<small>°C</small>';
-  document.getElementById("s-hum").innerHTML=c.relative_humidity_2m+'<small>%</small>';
-  document.getElementById("s-wind").innerHTML=Math.round(c.wind_speed_10m)+'<small>km/h</small>';
-  document.getElementById("s-gust").innerHTML=Math.round(c.wind_gusts_10m)+'<small>km/h</small>';
-  document.getElementById("s-dir").innerHTML='<span class="arrow" style="transform:rotate('+c.wind_direction_10m+'deg)">\u2191</span> '+dirTxt(c.wind_direction_10m);
-  document.getElementById("s-pres").innerHTML=Math.round(c.surface_pressure)+'<small>hPa</small>';
+  document.getElementById("s-temp").innerHTML=R(c.temperature_2m)+'<small>°C</small>';
+  document.getElementById("s-app").innerHTML=R(c.apparent_temperature)+'<small>°C</small>';
+  document.getElementById("s-hum").innerHTML=(c.relative_humidity_2m??"--")+'<small>%</small>';
+  document.getElementById("s-wind").innerHTML=R(c.wind_speed_10m)+'<small>km/h</small>';
+  document.getElementById("s-gust").innerHTML=R(c.wind_gusts_10m)+'<small>km/h</small>';
+  document.getElementById("s-dir").innerHTML='<span class="arrow" style="transform:rotate('+(c.wind_direction_10m||0)+'deg)">\u2191</span> '+dirTxt(c.wind_direction_10m||0);
+  document.getElementById("s-pres").innerHTML=R(c.surface_pressure)+'<small>hPa</small>';
   if(m&&m.current){document.getElementById("s-wave").innerHTML=(m.current.wave_height??"--")+'<small>m</small>';}
   else{document.getElementById("s-wave").innerHTML='--';}
   document.getElementById("upd").textContent=new Date().toLocaleTimeString("it-IT");
@@ -193,7 +208,7 @@ async function load(){
       {label:"Vento km/h",data:wind,borderColor:PHOS,backgroundColor:"rgba(51,255,102,.08)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
       {label:"Raffiche km/h",data:gust,borderColor:RED,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[5,3]}
     ]},
-    options:baseOpts({y:{grid:{color:GRID},ticks:{color:PHOS},title:{display:true,text:"km/h",color:PHOS},beginAtZero:true})});
+    options:baseOpts({y:{grid:{color:GRID},ticks:{color:PHOS},title:{display:true,text:"km/h",color:PHOS},beginAtZero:true}})});
 
   // --- mare ---
   const seaBox=document.getElementById("chSea");
@@ -210,7 +225,7 @@ async function load(){
         {label:"Temp. mare °C",data:sst,borderColor:AMBER,yAxisID:"y1",tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]}
       ]},
       options:baseOpts({y:{grid:{color:GRID},ticks:{color:CYAN},title:{display:true,text:"m",color:CYAN},beginAtZero:true},
-        y1:{position:"right",grid:{drawOnChartArea:false},ticks:{color:PHOS},title:{display:true,text:"s / °C",color:PHOS}})});
+        y1:{position:"right",grid:{drawOnChartArea:false},ticks:{color:PHOS},title:{display:true,text:"s / °C",color:PHOS}}})});
   } else {
     seaBox.parentElement.innerHTML='<div class="err">Dati marini non disponibili al momento (marine-api).</div>';
   }
@@ -219,9 +234,9 @@ async function load(){
   let html='<thead><tr><th>Ora</th><th>°C</th><th>Perc.</th><th>UR%</th><th>Pioggia%</th><th>Vento</th><th>Raff.</th><th>Dir</th><th>Cielo</th></tr></thead><tbody>';
   for(let i=0;i<N;i++){
     const [d,ic]=wmo(w.hourly.weather_code[i]);
-    html+=`<tr><td class="t">${fmtH(w.hourly.time[i])}</td><td>${Math.round(temp[i])}</td><td>${Math.round(app[i])}</td>`+
-      `<td>${w.hourly.relative_humidity_2m[i]}</td><td>${prec[i]}</td><td>${Math.round(wind[i])}</td><td>${Math.round(gust[i])}</td>`+
-      `<td>${dirTxt(w.hourly.wind_direction_10m[i])}</td><td title="${d}">${ic}</td></tr>`;
+    html+=`<tr><td class="t">${fmtH(w.hourly.time[i])}</td><td>${R(temp[i])}</td><td>${R(app[i])}</td>`+
+      `<td>${w.hourly.relative_humidity_2m[i]??"--"}</td><td>${prec[i]??"--"}</td><td>${R(wind[i])}</td><td>${R(gust[i])}</td>`+
+      `<td>${dirTxt(w.hourly.wind_direction_10m[i]||0)}</td><td title="${d}">${ic}</td></tr>`;
   }
   html+='</tbody>';
   document.getElementById("tbl").innerHTML=html;
