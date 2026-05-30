@@ -92,6 +92,29 @@
   .footer{font-size:11px;color:var(--phos-dim);text-align:center;margin-top:8px;letter-spacing:1px}
   a{color:var(--cyan)}
   .arrow{display:inline-block;font-size:16px}
+  .install-box{display:none;text-align:center;margin:20px 0 8px}
+  .install-box.show{display:block}
+  .install-btn{
+    font-family:'VT323',monospace;font-size:22px;letter-spacing:2px;
+    background:var(--panel);color:var(--amber);
+    border:1px solid var(--amber);
+    padding:12px 28px;cursor:pointer;
+    text-shadow:0 0 6px rgba(255,176,0,.6);
+    box-shadow:0 0 12px rgba(255,176,0,.15),inset 0 0 18px rgba(255,176,0,.06);
+    transition:all .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .install-btn:hover,.install-btn:active{
+    background:#1a1505;color:#ffd24d;
+    box-shadow:0 0 24px rgba(255,176,0,.45),inset 0 0 24px rgba(255,176,0,.15);
+  }
+  .install-hint{font-size:11px;color:var(--phos-dim);margin-top:8px;letter-spacing:1px}
+  .ios-hint{
+    border:1px dashed var(--line);padding:12px;margin:8px auto 0;max-width:520px;
+    font-size:12px;color:var(--phos);line-height:1.5;text-align:left;background:#0a110a;
+  }
+  .ios-hint b{color:var(--amber)}
+  .ios-hint .ico{display:inline-block;color:var(--cyan);font-weight:700}
 </style>
 </head>
 <body>
@@ -138,6 +161,17 @@
   <div class="panel">
     <h2>// TABELLA ORARIA</h2>
     <div class="scroll"><table id="tbl"><tbody><tr><td class="err">In attesa dati...</td></tr></tbody></table></div>
+  </div>
+
+  <div class="install-box" id="installBox">
+    <button class="install-btn" id="installBtn" type="button">[ INSTALLA APP ]</button>
+    <div class="install-hint" id="installHint">installa Meteo VR sul tuo dispositivo &middot; funziona offline</div>
+    <div class="ios-hint" id="iosHint" style="display:none">
+      <b>// INSTALLAZIONE SU iOS</b><br>
+      1. Tocca l'icona <span class="ico">[&#x2191;]</span> Condividi nella barra di Safari<br>
+      2. Scorri e seleziona <b>&laquo;Aggiungi alla schermata Home&raquo;</b><br>
+      3. Conferma con <b>Aggiungi</b> in alto a destra
+    </div>
   </div>
 
   <div class="footer">SORGENTE: open-meteo.com &middot; aggiornato <span id="upd">--</span> &middot; nessuna API key richiesta</div>
@@ -274,6 +308,65 @@ if("serviceWorker" in navigator){
     navigator.serviceWorker.register("sw.js").catch(e=>console.warn("SW non registrato:",e));
   });
 }
+
+// --- PWA install ---
+(function(){
+  const box=document.getElementById("installBox");
+  const btn=document.getElementById("installBtn");
+  const hint=document.getElementById("installHint");
+  const iosHint=document.getElementById("iosHint");
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+    || window.matchMedia("(display-mode: minimal-ui)").matches
+    || window.navigator.standalone === true;
+  if(isStandalone){ return; }
+
+  let deferredPrompt=null;
+
+  window.addEventListener("beforeinstallprompt",(e)=>{
+    e.preventDefault();
+    deferredPrompt=e;
+    iosHint.style.display="none";
+    hint.textContent="installa Meteo VR sul tuo dispositivo · funziona offline";
+    box.classList.add("show");
+  });
+
+  btn.addEventListener("click",async()=>{
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      const choice=await deferredPrompt.userChoice;
+      deferredPrompt=null;
+      if(choice && choice.outcome==="accepted"){
+        box.classList.remove("show");
+      }
+    } else {
+      // iOS / browser senza prompt programmatico
+      iosHint.style.display = iosHint.style.display==="block" ? "none" : "block";
+    }
+  });
+
+  window.addEventListener("appinstalled",()=>{
+    box.classList.remove("show");
+    deferredPrompt=null;
+  });
+
+  // iOS Safari: nessun beforeinstallprompt → mostra comunque il pulsante con istruzioni
+  const ua=navigator.userAgent||"";
+  const isIOS=/iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isSafari=/^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  if(isIOS && isSafari){
+    hint.textContent="su iOS: tocca il pulsante per le istruzioni";
+    box.classList.add("show");
+  }
+
+  // Fallback: se dopo 3s il browser non ha emesso beforeinstallprompt
+  // e non siamo su iOS, mostra comunque il box (l'utente potrà usare il menu del browser)
+  setTimeout(()=>{
+    if(!box.classList.contains("show") && !isStandalone){
+      hint.textContent="usa il menu del browser → 'Installa app' / 'Aggiungi a schermata Home'";
+      box.classList.add("show");
+    }
+  },3000);
+})();
 </script>
 </body>
 </html>
