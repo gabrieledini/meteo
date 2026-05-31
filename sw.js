@@ -1,4 +1,4 @@
-const CACHE="meteo-vr-v3";
+const CACHE="meteo-vr-v2";
 const ASSETS=[
   "./",
   "./index.html",
@@ -28,19 +28,6 @@ self.addEventListener("fetch",e=>{
   const url=new URL(req.url);
   const isApi=url.hostname.endsWith("open-meteo.com");
 
-  // Navigazione (caricamento pagina) -> fallback a index.html offline
-  // Necessario per criterio "installabile" su molti Android
-  if(req.mode==="navigate"){
-    e.respondWith(
-      fetch(req).then(res=>{
-        const copy=res.clone();
-        caches.open(CACHE).then(c=>c.put(req,copy));
-        return res;
-      }).catch(()=>caches.match(req).then(hit=>hit||caches.match("./index.html")))
-    );
-    return;
-  }
-
   if(isApi){
     // network-first: dati freschi, fallback alla cache se offline
     e.respondWith(
@@ -57,7 +44,7 @@ self.addEventListener("fetch",e=>{
         const copy=res.clone();
         caches.open(CACHE).then(c=>c.put(req,copy));
         return res;
-      }).catch(()=>caches.match("./index.html")))
+      }))
     );
   }
 });

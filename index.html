@@ -2,30 +2,15 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>METEO::VIAREGGIO</title>
-<meta name="theme-color" content="#0a0e0a" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0a0e0a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0a0e0a">
 <meta name="description" content="Meteo e meteo mare di Viareggio, previsioni 48h+, stile terminale CRT.">
-<meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
-
-<!-- PWA Android / Chromium -->
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="Meteo VR">
-
-<!-- PWA iOS / Safari -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Meteo VR">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
-
-<!-- Favicon fallback -->
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="shortcut icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -36,12 +21,8 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--phos);font-family:'IBM Plex Mono',monospace}
   body{
-    min-height:100vh;
-    padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+    min-height:100vh;padding:18px;
     background-image:radial-gradient(ellipse at 50% 0%, #0f1a0f 0%, #060906 80%);
-    -webkit-tap-highlight-color:transparent;
-    -webkit-touch-callout:none;
-    overscroll-behavior-y:none;
   }
   body::after{
     content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
@@ -82,6 +63,17 @@
   .cond-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
   .cond-desc{font-size:14px;color:var(--phos)}
   .charts{display:grid;grid-template-columns:1fr;gap:16px}
+  .ov-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:620px){.ov-grid{grid-template-columns:1fr}}
+  .ov-day{border:1px solid var(--line);background:#0a110a}
+  .ov-day .day-h{font-family:'VT323',monospace;font-size:22px;color:var(--amber);letter-spacing:2px;padding:8px 10px;border-bottom:1px dashed var(--line);text-shadow:0 0 6px rgba(255,176,0,.4)}
+  .ov-bands{display:grid;grid-template-columns:repeat(3,1fr)}
+  .ov-band{padding:12px 6px;text-align:center;border-right:1px dashed var(--line)}
+  .ov-band:last-child{border-right:none}
+  .ov-band .bname{font-size:11px;color:var(--phos-dim);letter-spacing:1px;text-transform:uppercase}
+  .ov-band .bicon{font-family:'VT323',monospace;font-size:46px;line-height:1.1;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+  .ov-band .btemp{font-family:'VT323',monospace;font-size:26px;color:var(--phos);text-shadow:0 0 6px var(--phos-dim)}
+  .ov-band .bdesc{font-size:10px;color:var(--phos-dim);margin-top:2px}
   .chart-box{height:260px;position:relative}
   table{width:100%;border-collapse:collapse;font-size:12px}
   th,td{border:1px solid var(--line);padding:5px 7px;text-align:center}
@@ -92,29 +84,6 @@
   .footer{font-size:11px;color:var(--phos-dim);text-align:center;margin-top:8px;letter-spacing:1px}
   a{color:var(--cyan)}
   .arrow{display:inline-block;font-size:16px}
-  .install-box{display:none;text-align:center;margin:20px 0 8px}
-  .install-box.show{display:block}
-  .install-btn{
-    font-family:'VT323',monospace;font-size:22px;letter-spacing:2px;
-    background:var(--panel);color:var(--amber);
-    border:1px solid var(--amber);
-    padding:12px 28px;cursor:pointer;
-    text-shadow:0 0 6px rgba(255,176,0,.6);
-    box-shadow:0 0 12px rgba(255,176,0,.15),inset 0 0 18px rgba(255,176,0,.06);
-    transition:all .15s ease;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .install-btn:hover,.install-btn:active{
-    background:#1a1505;color:#ffd24d;
-    box-shadow:0 0 24px rgba(255,176,0,.45),inset 0 0 24px rgba(255,176,0,.15);
-  }
-  .install-hint{font-size:11px;color:var(--phos-dim);margin-top:8px;letter-spacing:1px}
-  .ios-hint{
-    border:1px dashed var(--line);padding:12px;margin:8px auto 0;max-width:520px;
-    font-size:12px;color:var(--phos);line-height:1.5;text-align:left;background:#0a110a;
-  }
-  .ios-hint b{color:var(--amber)}
-  .ios-hint .ico{display:inline-block;color:var(--cyan);font-weight:700}
 </style>
 </head>
 <body>
@@ -159,19 +128,13 @@
   </div>
 
   <div class="panel">
-    <h2>// TABELLA ORARIA</h2>
-    <div class="scroll"><table id="tbl"><tbody><tr><td class="err">In attesa dati...</td></tr></tbody></table></div>
+    <h2>// PANORAMICA &middot; 2 GIORNI</h2>
+    <div id="overview" class="ov-grid"><div class="sub">Calcolo fasce...</div></div>
   </div>
 
-  <div class="install-box" id="installBox">
-    <button class="install-btn" id="installBtn" type="button">[ INSTALLA APP ]</button>
-    <div class="install-hint" id="installHint">installa Meteo VR sul tuo dispositivo &middot; funziona offline</div>
-    <div class="ios-hint" id="iosHint" style="display:none">
-      <b>// INSTALLAZIONE SU iOS</b><br>
-      1. Tocca l'icona <span class="ico">[&#x2191;]</span> Condividi nella barra di Safari<br>
-      2. Scorri e seleziona <b>&laquo;Aggiungi alla schermata Home&raquo;</b><br>
-      3. Conferma con <b>Aggiungi</b> in alto a destra
-    </div>
+  <div class="panel">
+    <h2>// TABELLA ORARIA</h2>
+    <div class="scroll"><table id="tbl"><tbody><tr><td class="err">In attesa dati...</td></tr></tbody></table></div>
   </div>
 
   <div class="footer">SORGENTE: open-meteo.com &middot; aggiornato <span id="upd">--</span> &middot; nessuna API key richiesta</div>
@@ -186,6 +149,56 @@ const WMO={0:["Sereno","\u2600"],1:["Prev. sereno","\u2600"],2:["Parz. nuvoloso"
 80:["Rovesci","\u2614"],81:["Rovesci","\u2614"],82:["Rovesci violenti","\u26C8"],85:["Rovesci neve","\u2744"],86:["Rovesci neve","\u2744"],
 95:["Temporale","\u26A1"],96:["Temporale+grandine","\u26C8"],99:["Temporale+grandine","\u26C8"]};
 function wmo(c){return WMO[c]||["Sconosciuto","?"]}
+
+// raggruppa i codici WMO in categorie con un simbolo sintetico per la fascia
+function cat(code){
+  if([0,1].includes(code)) return {k:"sereno",ic:"\u2600",d:"Sereno",rank:0};
+  if(code===2)            return {k:"poco",  ic:"\u26C5",d:"Poco nuvoloso",rank:1};
+  if(code===3)            return {k:"coperto",ic:"\u2601",d:"Coperto",rank:2};
+  if([45,48].includes(code)) return {k:"nebbia",ic:"\u2592",d:"Nebbia",rank:2};
+  if([71,73,75,77,85,86].includes(code)) return {k:"neve",ic:"\u2744",d:"Neve",rank:4};
+  if([95,96,99].includes(code)) return {k:"temporale",ic:"\u26C8",d:"Temporale",rank:5};
+  if([51,53,55,61,63,65,66,67,80,81,82].includes(code)) return {k:"pioggia",ic:"\u2614",d:"Pioggia",rank:3};
+  return {k:"vario",ic:"\u26C5",d:"Variabile",rank:1};
+}
+// fascia oraria da un'ora 0-23
+function band(h){ if(h>=6&&h<13) return "mattina"; if(h>=13&&h<21) return "pomeriggio"; return "notte"; }
+
+function buildOverview(hourly){
+  const days={}; // {dateStr:{label,bands:{mattina:[],pomeriggio:[],notte:[]}}}
+  for(let i=0;i<hourly.time.length;i++){
+    const dt=new Date(hourly.time[i]);
+    const key=dt.toISOString().slice(0,10);
+    if(!days[key]){
+      days[key]={label:dt.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"short"}),
+                 bands:{mattina:[],pomeriggio:[],notte:[]}};
+    }
+    days[key].bands[band(dt.getHours())].push({code:hourly.weather_code[i],t:hourly.temperature_2m[i]});
+  }
+  const keys=Object.keys(days).sort().slice(0,2); // primi 2 giorni
+  const order=[["mattina","Mattina"],["pomeriggio","Pomeriggio"],["notte","Notte"]];
+  let html="";
+  for(const k of keys){
+    const day=days[k];
+    html+=`<div class="ov-day"><div class="day-h">${day.label.toUpperCase()}</div><div class="ov-bands">`;
+    for(const [bk,blabel] of order){
+      const arr=day.bands[bk];
+      if(!arr.length){ html+=`<div class="ov-band"><div class="bname">${blabel}</div><div class="bicon">\u00B7</div><div class="btemp">--</div></div>`; continue; }
+      // categoria dominante (moda); a parità vince il rank più severo
+      const freq={};
+      arr.forEach(x=>{const c=cat(x.code);freq[c.k]=freq[c.k]||{n:0,c};freq[c.k].n++;});
+      let best=null;
+      Object.values(freq).forEach(f=>{ if(!best||f.n>best.n||(f.n===best.n&&f.c.rank>best.c.rank)) best=f; });
+      const temps=arr.map(x=>x.t).filter(v=>v!=null);
+      const avg=temps.length?Math.round(temps.reduce((a,b)=>a+b,0)/temps.length):"--";
+      html+=`<div class="ov-band"><div class="bname">${blabel}</div>`+
+            `<div class="bicon" title="${best.c.d}">${best.c.ic}</div>`+
+            `<div class="btemp">${avg}°</div><div class="bdesc">${best.c.d}</div></div>`;
+    }
+    html+=`</div></div>`;
+  }
+  document.getElementById("overview").innerHTML=html;
+}
 function dirTxt(d){const a=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];return a[Math.round(d/22.5)%16]}
 function fmtH(iso){const d=new Date(iso);return d.toLocaleString("it-IT",{weekday:"short",hour:"2-digit",minute:"2-digit"})}
 function R(v){return v==null?"--":Math.round(v)}
@@ -290,6 +303,9 @@ async function load(){
     seaBox.parentElement.innerHTML='<div class="err">Dati marini non disponibili al momento (marine-api).</div>';
   }
 
+  // --- panoramica fasce (mattina/pomeriggio/notte) ---
+  buildOverview(w.hourly);
+
   // --- tabella ---
   let html='<thead><tr><th>Ora</th><th>°C</th><th>Perc.</th><th>UR%</th><th>Pioggia%</th><th>Vento</th><th>Raff.</th><th>Dir</th><th>Cielo</th></tr></thead><tbody>';
   for(let i=0;i<N;i++){
@@ -308,65 +324,6 @@ if("serviceWorker" in navigator){
     navigator.serviceWorker.register("sw.js").catch(e=>console.warn("SW non registrato:",e));
   });
 }
-
-// --- PWA install ---
-(function(){
-  const box=document.getElementById("installBox");
-  const btn=document.getElementById("installBtn");
-  const hint=document.getElementById("installHint");
-  const iosHint=document.getElementById("iosHint");
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches
-    || window.matchMedia("(display-mode: minimal-ui)").matches
-    || window.navigator.standalone === true;
-  if(isStandalone){ return; }
-
-  let deferredPrompt=null;
-
-  window.addEventListener("beforeinstallprompt",(e)=>{
-    e.preventDefault();
-    deferredPrompt=e;
-    iosHint.style.display="none";
-    hint.textContent="installa Meteo VR sul tuo dispositivo · funziona offline";
-    box.classList.add("show");
-  });
-
-  btn.addEventListener("click",async()=>{
-    if(deferredPrompt){
-      deferredPrompt.prompt();
-      const choice=await deferredPrompt.userChoice;
-      deferredPrompt=null;
-      if(choice && choice.outcome==="accepted"){
-        box.classList.remove("show");
-      }
-    } else {
-      // iOS / browser senza prompt programmatico
-      iosHint.style.display = iosHint.style.display==="block" ? "none" : "block";
-    }
-  });
-
-  window.addEventListener("appinstalled",()=>{
-    box.classList.remove("show");
-    deferredPrompt=null;
-  });
-
-  // iOS Safari: nessun beforeinstallprompt → mostra comunque il pulsante con istruzioni
-  const ua=navigator.userAgent||"";
-  const isIOS=/iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  const isSafari=/^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
-  if(isIOS && isSafari){
-    hint.textContent="su iOS: tocca il pulsante per le istruzioni";
-    box.classList.add("show");
-  }
-
-  // Fallback: se dopo 3s il browser non ha emesso beforeinstallprompt
-  // e non siamo su iOS, mostra comunque il box (l'utente potrà usare il menu del browser)
-  setTimeout(()=>{
-    if(!box.classList.contains("show") && !isStandalone){
-      hint.textContent="usa il menu del browser → 'Installa app' / 'Aggiungi a schermata Home'";
-      box.classList.add("show");
-    }
-  },3000);
-})();
 </script>
 </body>
 </html>
