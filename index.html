@@ -66,7 +66,9 @@
   .alert-box{border:2px solid var(--red);background:#1a0707;padding:14px 16px;margin-bottom:16px;
     box-shadow:0 0 22px rgba(255,77,77,.35),inset 0 0 30px rgba(255,77,77,.08);animation:alertpulse 1.6s ease-in-out infinite}
   @keyframes alertpulse{0%,100%{box-shadow:0 0 14px rgba(255,77,77,.25),inset 0 0 20px rgba(255,77,77,.06)}50%{box-shadow:0 0 28px rgba(255,77,77,.55),inset 0 0 36px rgba(255,77,77,.12)}}
-  .alert-head{font-family:'VT323',monospace;font-size:26px;color:var(--red);letter-spacing:3px;text-shadow:0 0 10px rgba(255,77,77,.7)}
+  .alert-head{font-family:'VT323',monospace;font-size:26px;color:var(--red);letter-spacing:3px;text-shadow:0 0 10px rgba(255,77,77,.7);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .alert-time{font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:1px;color:#1a0707;background:var(--red);padding:3px 10px;border-radius:2px;text-shadow:none;box-shadow:0 0 12px rgba(255,77,77,.6)}
+  .alert-img{display:block;max-width:100%;max-height:340px;margin:10px 0 4px;border:1px solid var(--red);box-shadow:0 0 14px rgba(255,77,77,.25);object-fit:contain}
   .alert-body{font-size:14px;color:#ffd9d9;margin-top:8px;line-height:1.5;white-space:pre-wrap}
   .alert-foot{font-size:11px;color:#c98;margin-top:8px;letter-spacing:1px}
   .alert-foot a{color:var(--red)}
@@ -99,7 +101,8 @@
   <div class="sub" id="coords">43.87°N 10.25°E &middot; LAT.TIRRENICA &middot; caricamento dati...</div>
 
   <div id="alertBox" class="alert-box" style="display:none">
-    <div class="alert-head">⚠ ALLERTA METEO</div>
+    <div class="alert-head">⚠ ALLERTA METEO <span class="alert-time" id="alertTime"></span></div>
+    <img class="alert-img" id="alertImg" alt="Immagine allerta" style="display:none">
     <div class="alert-body" id="alertBody"></div>
     <div class="alert-foot" id="alertFoot"></div>
   </div>
@@ -368,13 +371,31 @@ async function checkAlert(){
     if(isNaN(ts)) continue;
     if(now-ts>DAY) continue;                       // più vecchio di 24h
     if(!/allert/i.test(txt)) continue;             // deve contenere "allert..."
-    found={txt,ts,link:m.getAttribute("data-post")};
+    // estrai immagine: <a class="tgme_widget_message_photo_wrap" style="background-image:url('...')">
+    let img=null;
+    const photo=m.querySelector(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb");
+    if(photo){
+      const bg=photo.getAttribute("style")||"";
+      const mm=bg.match(/background-image:\s*url\(['"]?([^'")]+)['"]?\)/i);
+      if(mm) img=mm[1];
+    }
+    found={txt,ts,link:m.getAttribute("data-post"),img};
     break;
   }
   if(!found) return;
   const box=document.getElementById("alertBox");
   document.getElementById("alertBody").textContent=found.txt.length>600?found.txt.slice(0,600)+"…":found.txt;
-  const when=new Date(found.ts).toLocaleString("it-IT",{weekday:"long",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  const d=new Date(found.ts);
+  // badge orario prominente
+  const ageH=(now-found.ts)/3600000;
+  const ageTxt=ageH<1?`${Math.round(ageH*60)} min fa`:`${ageH.toFixed(1).replace(".0","")} ore fa`;
+  document.getElementById("alertTime").textContent=
+    `${d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})} · ${ageTxt}`;
+  // immagine
+  const imgEl=document.getElementById("alertImg");
+  if(found.img){ imgEl.src=found.img; imgEl.style.display="block"; imgEl.onerror=()=>{imgEl.style.display="none";}; }
+  else { imgEl.style.display="none"; }
+  const when=d.toLocaleString("it-IT",{weekday:"long",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
   const url=found.link?`https://t.me/${found.link}`:`https://t.me/s/${TG_CHANNEL}`;
   document.getElementById("alertFoot").innerHTML=`Pubblicato ${when} &middot; fonte: <a href="${url}" target="_blank" rel="noopener">@${TG_CHANNEL}</a> (Regione Toscana)`;
   box.style.display="block";
