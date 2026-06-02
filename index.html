@@ -165,17 +165,21 @@ function cat(code){
 function band(h){ if(h>=6&&h<13) return "mattina"; if(h>=13&&h<21) return "pomeriggio"; return "notte"; }
 
 function buildOverview(hourly){
+  const dkey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const days={}; // {dateStr:{label,bands:{mattina:[],pomeriggio:[],notte:[]}}}
   for(let i=0;i<hourly.time.length;i++){
     const dt=new Date(hourly.time[i]);
-    const key=dt.toISOString().slice(0,10);
+    const key=dkey(dt);
     if(!days[key]){
       days[key]={label:dt.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"short"}),
                  bands:{mattina:[],pomeriggio:[],notte:[]}};
     }
     days[key].bands[band(dt.getHours())].push({code:hourly.weather_code[i],t:hourly.temperature_2m[i]});
   }
-  const keys=Object.keys(days).sort().slice(0,2); // primi 2 giorni
+  // ancora a oggi e domani (date locali), non semplicemente ai primi 2 blocchi
+  const today=new Date(); today.setHours(0,0,0,0);
+  const tomorrow=new Date(today.getTime()+86400000);
+  const keys=[dkey(today),dkey(tomorrow)].filter(k=>days[k]);
   const order=[["mattina","Mattina"],["pomeriggio","Pomeriggio"],["notte","Notte"]];
   let html="";
   for(const k of keys){
