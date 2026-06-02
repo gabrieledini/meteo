@@ -1,4 +1,4 @@
-const CACHE="meteo-vr-v3";
+const CACHE="meteo-vr-v4";
 const ASSETS=[
   "./",
   "./index.html",
@@ -27,6 +27,9 @@ self.addEventListener("fetch",e=>{
   if(req.method!=="GET") return;
   const url=new URL(req.url);
   const isApi=url.hostname.endsWith("open-meteo.com");
+  // le allerte Telegram (via proxy CORS) devono sempre passare dalla rete, mai cache
+  const isProxy=/allorigins|corsproxy|thingproxy/.test(url.hostname);
+  if(isProxy) return; // lascia gestire al browser, niente intercettazione SW
 
   if(isApi){
     // network-first: dati freschi, fallback alla cache se offline

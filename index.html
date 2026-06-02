@@ -63,6 +63,13 @@
   .cond-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
   .cond-desc{font-size:14px;color:var(--phos)}
   .charts{display:grid;grid-template-columns:1fr;gap:16px}
+  .alert-box{border:2px solid var(--red);background:#1a0707;padding:14px 16px;margin-bottom:16px;
+    box-shadow:0 0 22px rgba(255,77,77,.35),inset 0 0 30px rgba(255,77,77,.08);animation:alertpulse 1.6s ease-in-out infinite}
+  @keyframes alertpulse{0%,100%{box-shadow:0 0 14px rgba(255,77,77,.25),inset 0 0 20px rgba(255,77,77,.06)}50%{box-shadow:0 0 28px rgba(255,77,77,.55),inset 0 0 36px rgba(255,77,77,.12)}}
+  .alert-head{font-family:'VT323',monospace;font-size:26px;color:var(--red);letter-spacing:3px;text-shadow:0 0 10px rgba(255,77,77,.7)}
+  .alert-body{font-size:14px;color:#ffd9d9;margin-top:8px;line-height:1.5;white-space:pre-wrap}
+  .alert-foot{font-size:11px;color:#c98;margin-top:8px;letter-spacing:1px}
+  .alert-foot a{color:var(--red)}
   .ov-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
   @media(max-width:620px){.ov-grid{grid-template-columns:1fr}}
   .ov-day{border:1px solid var(--line);background:#0a110a}
@@ -90,6 +97,12 @@
 <div class="wrap">
   <h1>METEO :: VIAREGGIO<span class="blink">_</span></h1>
   <div class="sub" id="coords">43.87°N 10.25°E &middot; LAT.TIRRENICA &middot; caricamento dati...</div>
+
+  <div id="alertBox" class="alert-box" style="display:none">
+    <div class="alert-head">⚠ ALLERTA METEO</div>
+    <div class="alert-body" id="alertBody"></div>
+    <div class="alert-foot" id="alertFoot"></div>
+  </div>
 
   <div class="panel">
     <h2>// CONDIZIONI ATTUALI</h2>
@@ -321,7 +334,54 @@ async function load(){
   html+='</tbody>';
   document.getElementById("tbl").innerHTML=html;
 }
+// ---- ALLERTA METEO da canale Telegram pubblico ----
+const TG_CHANNEL="gianieugenio";
+const TG_PROXIES=[
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  u=>`https://thingproxy.freeboard.io/fetch/${u}`
+];
+async function fetchVia(url){
+  for(const p of TG_PROXIES){
+    try{
+      const r=await fetch(p(url),{cache:"no-store"});
+      if(r.ok){ const t=await r.text(); if(t&&t.length>500) return t; }
+    }catch(e){ /* prova il prossimo */ }
+  }
+  return null;
+}
+async function checkAlert(){
+  const html=await fetchVia(`https://t.me/s/${TG_CHANNEL}`);
+  if(!html){ console.warn("Allerta: nessun proxy ha risposto"); return; }
+  const doc=new DOMParser().parseFromString(html,"text/html");
+  const msgs=[...doc.querySelectorAll(".tgme_widget_message")];
+  const now=Date.now(), DAY=86400000;
+  let found=null;
+  // dal più recente (in fondo) verso l'alto
+  for(let i=msgs.length-1;i>=0;i--){
+    const m=msgs[i];
+    const txtEl=m.querySelector(".tgme_widget_message_text");
+    const timeEl=m.querySelector("time[datetime]");
+    if(!txtEl||!timeEl) continue;
+    const txt=txtEl.textContent.trim();
+    const ts=new Date(timeEl.getAttribute("datetime")).getTime();
+    if(isNaN(ts)) continue;
+    if(now-ts>DAY) continue;                       // più vecchio di 24h
+    if(!/allert/i.test(txt)) continue;             // deve contenere "allert..."
+    found={txt,ts,link:m.getAttribute("data-post")};
+    break;
+  }
+  if(!found) return;
+  const box=document.getElementById("alertBox");
+  document.getElementById("alertBody").textContent=found.txt.length>600?found.txt.slice(0,600)+"…":found.txt;
+  const when=new Date(found.ts).toLocaleString("it-IT",{weekday:"long",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  const url=found.link?`https://t.me/${found.link}`:`https://t.me/s/${TG_CHANNEL}`;
+  document.getElementById("alertFoot").innerHTML=`Pubblicato ${when} &middot; fonte: <a href="${url}" target="_blank" rel="noopener">@${TG_CHANNEL}</a> (Regione Toscana)`;
+  box.style.display="block";
+}
+
 load();
+checkAlert();
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{
