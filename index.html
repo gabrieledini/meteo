@@ -346,19 +346,39 @@ async function load(){
 // ---- ALLERTA METEO ufficiale Regione Toscana (via Netlify Function) ----
 // La function /.netlify/functions/allerta legge regione.toscana.it lato server.
 const ALERT_ENDPOINT="/.netlify/functions/allerta";
+const ALERT_DEBUG=/[?&]debug/.test(location.search);
+
+function alertDebug(msg){
+  if(!ALERT_DEBUG) return;
+  const box=document.getElementById("alertBox");
+  box.style.display="block";
+  box.style.borderColor="#33d6ff";
+  document.querySelector(".alert-head").textContent="🛈 DEBUG ALLERTA";
+  document.querySelector(".alert-head").style.color="#33d6ff";
+  document.getElementById("alertTime").style.display="none";
+  document.getElementById("alertBody").textContent=msg;
+  document.getElementById("alertFoot").textContent="modalità debug attiva (?debug nell'URL)";
+}
 
 async function checkAlert(){
   let data;
   try{
     const r=await fetch(ALERT_ENDPOINT,{cache:"no-store"});
-    data=await r.json();
+    const raw=await r.text();
+    alertDebug(`HTTP ${r.status}\nRisposta function:\n${raw.slice(0,500)}`);
+    data=JSON.parse(raw);
   }catch(e){
     console.warn("[allerta] function non raggiungibile:",e.message,"(in locale è normale: serve Netlify)");
+    alertDebug("ERRORE: function non raggiungibile.\n"+e.message+"\n\nSe sei in locale è normale (serve Netlify). Se sei su Netlify, la function non è stata deployata: vedi note.");
     return;
   }
   if(!data||!data.ok){ console.warn("[allerta] errore lettura fonte:",data&&data.error); return; }
-  console.log(`[allerta] emissione: ${data.emissione?data.emissione.label:"n/d"} · fresca(24h): ${data.fresca}`);
-  if(!data.allerta){ console.log("[allerta] nessun bollettino fresco da mostrare"); return; }
+  console.log(`[allerta] emissione: ${data.emissione?data.emissione.label:"n/d"} · fresca: ${data.fresca} · ${data.ageHours?data.ageHours.toFixed(1)+"h":""}`);
+  if(!data.allerta){
+    console.log("[allerta] nessun bollettino fresco da mostrare");
+    alertDebug(`Function OK ✓\nEmissione: ${data.emissione?data.emissione.label:"non trovata"}\nEtà: ${data.ageHours?data.ageHours.toFixed(1)+" ore":"?"}\nfresca(≤36h): ${data.fresca}\n→ nessun banner: il bollettino non è recente.`);
+    return;
+  }
 
   const box=document.getElementById("alertBox");
   const tEl=document.getElementById("alertTime");
