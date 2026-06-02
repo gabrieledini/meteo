@@ -69,6 +69,11 @@
   .alert-head{font-family:'VT323',monospace;font-size:26px;color:var(--red);letter-spacing:3px;text-shadow:0 0 10px rgba(255,77,77,.7);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .alert-time{font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:1px;color:#1a0707;background:var(--red);padding:3px 10px;border-radius:2px;text-shadow:none;box-shadow:0 0 12px rgba(255,77,77,.6)}
   .alert-img{display:block;max-width:100%;max-height:340px;margin:10px 0 4px;border:1px solid var(--red);box-shadow:0 0 14px rgba(255,77,77,.25);object-fit:contain}
+  .alert-maps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 4px}
+  .alert-map{display:block;border:1px solid var(--line);background:#0a110a;text-decoration:none;transition:border-color .2s}
+  .alert-map:hover{border-color:var(--red)}
+  .alert-map .map-lbl{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--amber);padding:5px 8px;border-bottom:1px solid var(--line)}
+  .alert-map img{display:block;width:100%;height:auto;background:#fff}
   .alert-body{font-size:14px;color:#ffd9d9;margin-top:8px;line-height:1.5;white-space:pre-wrap}
   .alert-foot{font-size:11px;color:#c98;margin-top:8px;letter-spacing:1px}
   .alert-foot a{color:var(--red)}
@@ -337,70 +342,55 @@ async function load(){
   html+='</tbody>';
   document.getElementById("tbl").innerHTML=html;
 }
-// ---- ALLERTA METEO da canale Telegram pubblico ----
-const TG_CHANNEL="gianieugenio";
-const TG_PROXIES=[
-  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-  u=>`https://thingproxy.freeboard.io/fetch/${u}`
-];
-async function fetchVia(url){
-  for(const p of TG_PROXIES){
-    try{
-      const r=await fetch(p(url),{cache:"no-store"});
-      if(r.ok){ const t=await r.text(); if(t&&t.length>500) return t; }
-    }catch(e){ /* prova il prossimo */ }
-  }
-  return null;
-}
+
+// ---- ALLERTA METEO ufficiale Regione Toscana (via Netlify Function) ----
+// La function /.netlify/functions/allerta legge regione.toscana.it lato server.
+const ALERT_ENDPOINT="/.netlify/functions/allerta";
+
 async function checkAlert(){
-  const html=await fetchVia(`https://t.me/s/${TG_CHANNEL}`);
-  if(!html){ console.warn("Allerta: nessun proxy ha risposto"); return; }
-  const doc=new DOMParser().parseFromString(html,"text/html");
-  const msgs=[...doc.querySelectorAll(".tgme_widget_message")];
-  const now=Date.now(), DAY=86400000;
-  let found=null;
-  // dal più recente (in fondo) verso l'alto
-  for(let i=msgs.length-1;i>=0;i--){
-    const m=msgs[i];
-    const txtEl=m.querySelector(".tgme_widget_message_text");
-    const timeEl=m.querySelector("time[datetime]");
-    if(!txtEl||!timeEl) continue;
-    const txt=txtEl.textContent.trim();
-    const ts=new Date(timeEl.getAttribute("datetime")).getTime();
-    if(isNaN(ts)) continue;
-    if(now-ts>DAY) continue;                       // più vecchio di 24h
-    if(!/allert/i.test(txt)) continue;             // deve contenere "allert..."
-    // estrai immagine: <a class="tgme_widget_message_photo_wrap" style="background-image:url('...')">
-    let img=null;
-    const photo=m.querySelector(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb");
-    if(photo){
-      const bg=photo.getAttribute("style")||"";
-      const mm=bg.match(/background-image:\s*url\(['"]?([^'")]+)['"]?\)/i);
-      if(mm) img=mm[1];
-    }
-    found={txt,ts,link:m.getAttribute("data-post"),img};
-    break;
+  let data;
+  try{
+    const r=await fetch(ALERT_ENDPOINT,{cache:"no-store"});
+    data=await r.json();
+  }catch(e){
+    console.warn("[allerta] function non raggiungibile:",e.message,"(in locale è normale: serve Netlify)");
+    return;
   }
-  if(!found) return;
+  if(!data||!data.ok){ console.warn("[allerta] errore lettura fonte:",data&&data.error); return; }
+  console.log(`[allerta] emissione: ${data.emissione?data.emissione.label:"n/d"} · fresca(24h): ${data.fresca}`);
+  if(!data.allerta){ console.log("[allerta] nessun bollettino fresco da mostrare"); return; }
+
   const box=document.getElementById("alertBox");
-  document.getElementById("alertBody").textContent=found.txt.length>600?found.txt.slice(0,600)+"…":found.txt;
-  const d=new Date(found.ts);
-  // badge orario prominente
-  const ageH=(now-found.ts)/3600000;
-  const ageTxt=ageH<1?`${Math.round(ageH*60)} min fa`:`${ageH.toFixed(1).replace(".0","")} ore fa`;
-  document.getElementById("alertTime").textContent=
-    `${d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})} · ${ageTxt}`;
-  // immagine
+  const tEl=document.getElementById("alertTime");
+  const ageTxt=data.ageHours<1?`${Math.round(data.ageHours*60)} min fa`:`${data.ageHours.toFixed(1).replace(".0","")} ore fa`;
+  tEl.textContent=`emesso ${ageTxt}`;
+
+  document.getElementById("alertBody").textContent=
+    `Bollettino di allerta meteo emesso dalla Regione Toscana. ${data.emissione?"Emissione di "+data.emissione.label+".":""} Viareggio rientra nella zona Versilia (Toscana costiera nord): controlla le mappe qui sotto per il codice colore della tua zona.`;
+
+  // galleria mappe del giorno (rischi rilevanti per la costa)
   const imgEl=document.getElementById("alertImg");
-  if(found.img){ imgEl.src=found.img; imgEl.style.display="block"; imgEl.onerror=()=>{imgEl.style.display="none";}; }
-  else { imgEl.style.display="none"; }
-  const when=d.toLocaleString("it-IT",{weekday:"long",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
-  const url=found.link?`https://t.me/${found.link}`:`https://t.me/s/${TG_CHANNEL}`;
-  document.getElementById("alertFoot").innerHTML=`Pubblicato ${when} &middot; fonte: <a href="${url}" target="_blank" rel="noopener">@${TG_CHANNEL}</a> (Regione Toscana)`;
+  imgEl.style.display="none";
+  const rilevanti=["temporali","vento","mareggiate","idrogeologico"];
+  let gal=document.getElementById("alertMaps");
+  if(!gal){
+    gal=document.createElement("div");
+    gal.id="alertMaps"; gal.className="alert-maps";
+    imgEl.insertAdjacentElement("afterend",gal);
+  }
+  gal.innerHTML=rilevanti.map(k=>{
+    const src=data.mappe.oggi.risks[k];
+    const url=`https://www.regione.toscana.it/allerta-meteo-rischio-${k}`;
+    return `<a href="${url}" target="_blank" rel="noopener" class="alert-map">`+
+           `<span class="map-lbl">${k}</span>`+
+           `<img loading="lazy" src="${src}" alt="mappa ${k}" onerror="this.parentElement.style.display='none'">`+
+           `</a>`;
+  }).join("");
+
+  document.getElementById("alertFoot").innerHTML=
+    `Fonte ufficiale: <a href="${data.fonte}" target="_blank" rel="noopener">Regione Toscana · Allerta Meteo</a> &middot; clicca una mappa per il dettaglio per comune`;
   box.style.display="block";
 }
-
 load();
 checkAlert();
 
