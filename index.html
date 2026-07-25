@@ -128,6 +128,7 @@
       <div class="stat"><div class="lbl">Vento</div><div class="val" id="s-wind">--<small>km/h</small></div></div>
       <div class="stat"><div class="lbl">Raffiche</div><div class="val" id="s-gust">--<small>km/h</small></div></div>
       <div class="stat"><div class="lbl">Direzione</div><div class="val" id="s-dir">--</div></div>
+      <div class="stat"><div class="lbl">Nome vento</div><div class="val" id="s-vento" style="font-size:28px">--</div></div>
       <div class="stat"><div class="lbl">Pressione</div><div class="val" id="s-pres" style="font-size:28px">--<small>hPa</small></div></div>
       <div class="stat sea"><div class="lbl">Onde</div><div class="val" id="s-wave">--<small>m</small></div></div>
     </div>
@@ -220,6 +221,14 @@ function buildOverview(hourly){
   document.getElementById("overview").innerHTML=html;
 }
 function dirTxt(d){const a=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];return a[Math.round(d/22.5)%16]}
+// nome del vento secondo la rosa mediterranea (direzione di PROVENIENZA)
+function ventoNome(d){
+  const n=[["Tramontana",0],["Grecale",45],["Levante",90],["Scirocco",135],
+           ["Ostro",180],["Libeccio",225],["Ponente",270],["Maestrale",315]];
+  // trova il settore da 45° più vicino
+  const i=Math.round(d/45)%8;
+  return n[i][0];
+}
 function fmtH(iso){const d=new Date(iso);return d.toLocaleString("it-IT",{weekday:"short",hour:"2-digit",minute:"2-digit"})}
 function R(v){return v==null?"--":Math.round(v)}
 
@@ -272,6 +281,7 @@ async function load(){
   document.getElementById("s-wind").innerHTML=R(c.wind_speed_10m)+'<small>km/h</small>';
   document.getElementById("s-gust").innerHTML=R(c.wind_gusts_10m)+'<small>km/h</small>';
   document.getElementById("s-dir").innerHTML='<span class="arrow" style="transform:rotate('+(c.wind_direction_10m||0)+'deg)">\u2191</span> '+dirTxt(c.wind_direction_10m||0);
+  document.getElementById("s-vento").textContent=(c.wind_direction_10m!=null&&c.wind_speed_10m>0)?ventoNome(c.wind_direction_10m):"Calma";
   document.getElementById("s-pres").innerHTML=R(c.surface_pressure)+'<small>hPa</small>';
   if(m&&m.current){document.getElementById("s-wave").innerHTML=(m.current.wave_height??"--")+'<small>m</small>';}
   else{document.getElementById("s-wave").innerHTML='--';}
