@@ -153,11 +153,6 @@
     <div id="overview" class="ov-grid"><div class="sub">Calcolo fasce...</div></div>
   </div>
 
-  <div class="panel">
-    <h2>// TABELLA ORARIA</h2>
-    <div class="scroll"><table id="tbl"><tbody><tr><td class="err">In attesa dati...</td></tr></tbody></table></div>
-  </div>
-
   <div class="footer">SORGENTE: open-meteo.com &middot; aggiornato <span id="upd">--</span> &middot; nessuna API key richiesta</div>
 </div>
 
@@ -257,7 +252,6 @@ async function load(){
   catch(e){
     console.error("Open-Meteo forecast:",e);
     document.getElementById("cond-desc").innerHTML='<span class="err">ERRORE meteo: '+e.message+'</span>';
-    document.getElementById("tbl").innerHTML='<tbody><tr><td class="err">Impossibile caricare i dati. Apri la console (F12) per il dettaglio.</td></tr></tbody>';
     return;
   }
   try{
@@ -330,17 +324,6 @@ async function load(){
 
   // --- panoramica fasce (mattina/pomeriggio/notte) ---
   buildOverview(w.hourly);
-
-  // --- tabella ---
-  let html='<thead><tr><th>Ora</th><th>°C</th><th>Perc.</th><th>UR%</th><th>Pioggia%</th><th>Vento</th><th>Raff.</th><th>Dir</th><th>Cielo</th></tr></thead><tbody>';
-  for(let i=0;i<N;i++){
-    const [d,ic]=wmo(w.hourly.weather_code[i]);
-    html+=`<tr><td class="t">${fmtH(w.hourly.time[i])}</td><td>${R(temp[i])}</td><td>${R(app[i])}</td>`+
-      `<td>${w.hourly.relative_humidity_2m[i]??"--"}</td><td>${prec[i]??"--"}</td><td>${R(wind[i])}</td><td>${R(gust[i])}</td>`+
-      `<td>${dirTxt(w.hourly.wind_direction_10m[i]||0)}</td><td title="${d}">${ic}</td></tr>`;
-  }
-  html+='</tbody>';
-  document.getElementById("tbl").innerHTML=html;
 }
 
 // ---- ALLERTA METEO da canale Telegram pubblico (via proxy CORS) ----
