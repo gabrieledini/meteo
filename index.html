@@ -356,16 +356,33 @@ async function fetchVia(url){
   }
   return null;
 }
+const ALERT_DEBUG=/[?&]debug/.test(location.search);
+function alertDebug(msg){
+  if(!ALERT_DEBUG) return;
+  const box=document.getElementById("alertBox");
+  box.style.display="block";
+  box.style.borderColor="#33d6ff";
+  const head=document.querySelector(".alert-head");
+  head.textContent="🛈 DEBUG ALLERTA";
+  head.style.color="#33d6ff";
+  document.getElementById("alertTime").style.display="none";
+  document.getElementById("alertBody").textContent=msg;
+  document.getElementById("alertFoot").textContent="modalità debug (?debug nell'URL)";
+}
 async function checkAlert(){
   console.log("[allerta] avvio controllo canale @"+TG_CHANNEL);
   const html=await fetchVia(`https://t.me/s/${TG_CHANNEL}`);
-  if(!html){ console.warn("[allerta] nessun proxy CORS ha risposto"); return; }
+  if(!html){
+    console.warn("[allerta] nessun proxy CORS ha risposto");
+    alertDebug("Nessun proxy CORS ha risposto.\nI tre proxy pubblici sono probabilmente giù o bloccati.\nQuesta è la causa più comune.");
+    return;
+  }
   console.log("[allerta] HTML ricevuto:",html.length,"caratteri");
   const doc=new DOMParser().parseFromString(html,"text/html");
   const msgs=[...doc.querySelectorAll(".tgme_widget_message")];
   console.log("[allerta] post trovati nel canale:",msgs.length);
-  const now=Date.now(), DAY=86400000;
-  let found=null, recenti=0;
+  const now=Date.now(), WINDOW=48*3600000; // 48h: copre allerte annunciate il giorno prima
+  let found=null, recenti=0, allerteFuoriFinestra=0;
   // dal più recente (in fondo) verso l'alto
   for(let i=msgs.length-1;i>=0;i--){
     const m=msgs[i];
@@ -375,7 +392,8 @@ async function checkAlert(){
     const txt=txtEl.textContent.trim();
     const ts=new Date(timeEl.getAttribute("datetime")).getTime();
     if(isNaN(ts)) continue;
-    if(now-ts>DAY) continue;                       // più vecchio di 24h
+    if(/allert/i.test(txt) && now-ts>WINDOW) allerteFuoriFinestra++;
+    if(now-ts>WINDOW) continue;                     // oltre la finestra 48h
     recenti++;
     if(!/allert/i.test(txt)) continue;             // deve contenere "allert..."
     // estrai immagine dal background-image del wrap foto/video
@@ -389,8 +407,15 @@ async function checkAlert(){
     found={txt,ts,link:m.getAttribute("data-post"),img};
     break;
   }
-  console.log(`[allerta] post nelle ultime 24h: ${recenti} · allerta trovata: ${found?"SÌ":"no"}`);
-  if(!found) return;
+  console.log(`[allerta] post recenti (48h): ${recenti} · allerta trovata: ${found?"SÌ":"no"}`);
+  if(!found){
+    alertDebug(`Proxy OK ✓ · post nel canale: ${msgs.length}\n`+
+      `Post nelle ultime 48h: ${recenti}\n`+
+      `Post "allerta" trovati nella finestra: 0\n`+
+      (allerteFuoriFinestra>0?`(${allerteFuoriFinestra} allerte trovate ma più vecchie di 48h)\n`:"")+
+      `→ nessun banner: nessun post con la parola "allerta" abbastanza recente.`);
+    return;
+  }
 
   const box=document.getElementById("alertBox");
   document.getElementById("alertBody").textContent=found.txt.length>600?found.txt.slice(0,600)+"…":found.txt;
