@@ -338,20 +338,26 @@ async function load(){
 
 // ---- ALLERTA METEO da canale Telegram pubblico (via proxy CORS) ----
 const TG_CHANNEL="gianieugenio";
+// Ogni voce: {url: costruttore, json: se la risposta è JSON con .contents}
 const TG_PROXIES=[
-  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-  u=>`https://thingproxy.freeboard.io/fetch/${u}`
+  {make:u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, json:true},
+  {make:u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, json:false},
+  {make:u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`, json:false},
+  {make:u=>`https://thingproxy.freeboard.io/fetch/${u}`, json:false}
 ];
 async function fetchVia(url){
   for(const p of TG_PROXIES){
-    const proxyUrl=p(url);
-    const host=new URL(proxyUrl).hostname;
+    const proxyUrl=p.make(url);
+    let host="?"; try{ host=new URL(proxyUrl).hostname; }catch(e){}
     try{
       const r=await fetch(proxyUrl,{cache:"no-store"});
-      if(r.ok){ const t=await r.text(); if(t&&t.length>500){ console.log("[allerta] proxy OK:",host); return t; }
-        console.warn("[allerta] proxy",host,"risposta troppo corta:",t.length); }
-      else { console.warn("[allerta] proxy",host,"HTTP",r.status); }
+      if(!r.ok){ console.warn("[allerta] proxy",host,"HTTP",r.status); continue; }
+      let t=await r.text();
+      if(p.json){
+        try{ const j=JSON.parse(t); t=j.contents||""; }catch(e){ console.warn("[allerta] proxy",host,"JSON non valido"); continue; }
+      }
+      if(t&&t.length>500){ console.log("[allerta] proxy OK:",host,"("+t.length+" char)"); return t; }
+      console.warn("[allerta] proxy",host,"risposta troppo corta:",t?t.length:0);
     }catch(e){ console.warn("[allerta] proxy",host,"errore:",e.message); }
   }
   return null;
@@ -370,11 +376,12 @@ function alertDebug(msg){
   document.getElementById("alertFoot").textContent="modalità debug (?debug nell'URL)";
 }
 async function checkAlert(){
+ try{
   console.log("[allerta] avvio controllo canale @"+TG_CHANNEL);
   const html=await fetchVia(`https://t.me/s/${TG_CHANNEL}`);
   if(!html){
     console.warn("[allerta] nessun proxy CORS ha risposto");
-    alertDebug("Nessun proxy CORS ha risposto.\nI tre proxy pubblici sono probabilmente giù o bloccati.\nQuesta è la causa più comune.");
+    alertDebug("STEP 1: nessun proxy CORS ha risposto.\nI tre proxy pubblici sono giù o bloccati.\nQuesta è la causa più comune.");
     return;
   }
   console.log("[allerta] HTML ricevuto:",html.length,"caratteri");
@@ -433,6 +440,11 @@ async function checkAlert(){
   const url=found.link?`https://t.me/${found.link}`:`https://t.me/s/${TG_CHANNEL}`;
   document.getElementById("alertFoot").innerHTML=`Pubblicato ${when} &middot; fonte: <a href="${url}" target="_blank" rel="noopener">@${TG_CHANNEL}</a> (Regione Toscana)`;
   box.style.display="block";
+  console.log("[allerta] banner mostrato ✓");
+ }catch(err){
+  console.error("[allerta] errore:",err);
+  alertDebug("ERRORE durante l'elaborazione:\n"+(err&&err.message?err.message:err)+"\n\n(riga/stack in console)");
+ }
 }
 load();
 checkAlert();
