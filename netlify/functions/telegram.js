@@ -5,7 +5,7 @@
 
 const CHANNEL = "gianieugenio";
 const SOURCE = `https://t.me/s/${CHANNEL}`;
-const WINDOW_MS = 48 * 3600 * 1000; // finestra 48h
+const WINDOW_MS = 24 * 3600 * 1000; // finestra 24h (durata dell'allerta)
 
 // decodifica le entità HTML più comuni (il testo dei post è HTML-escaped)
 function decodeEntities(s){
