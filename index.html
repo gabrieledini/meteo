@@ -370,9 +370,9 @@ async function checkAlert(){
   console.log(`[allerta] post:${data.postTotali} recenti:${data.recenti} allerta:${data.allerta?"SÌ":"no"}`);
   if(!data.allerta){
     alertDebug(`Function OK ✓ · post nel canale: ${data.postTotali}\n`+
-      `Post nelle ultime 48h: ${data.recenti}\n`+
+      `Post nelle ultime 24h: ${data.recenti}\n`+
       `Allerte recenti trovate: 0\n`+
-      (data.fuoriFinestra>0?`(${data.fuoriFinestra} allerte più vecchie di 48h)\n`:"")+
+      (data.fuoriFinestra>0?`(${data.fuoriFinestra} allerte più vecchie di 24h)\n`:"")+
       `→ nessun banner: nessun post "allerta" abbastanza recente.`);
     return;
   }
