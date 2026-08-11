@@ -85,6 +85,7 @@
   .alert-foot{font-size:11px;color:#c98;margin-top:8px;letter-spacing:1px}
   .alert-foot a{color:var(--red)}
   .ov-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(min-width:900px){.ov-grid{grid-template-columns:repeat(4,1fr)}}
   @media(max-width:620px){.ov-grid{grid-template-columns:1fr}}
   .ov-day{border:1px solid var(--line);background:#0a110a}
   .ov-day .day-h{font-family:'VT323',monospace;font-size:22px;color:var(--amber);letter-spacing:2px;padding:8px 10px;border-bottom:1px dashed var(--line);text-shadow:0 0 6px rgba(255,176,0,.4)}
@@ -162,7 +163,7 @@
   </div>
 
   <div class="panel">
-    <h2>// PANORAMICA &middot; 2 GIORNI</h2>
+    <h2>// PANORAMICA &middot; 3-4 GIORNI</h2>
     <div id="overview" class="ov-grid"><div class="sub">Calcolo fasce...</div></div>
   </div>
 
@@ -215,10 +216,14 @@ function buildOverview(hourly){
     }
     days[key].bands[band(dt.getHours())].push({code:hourly.weather_code[i],t:hourly.temperature_2m[i]});
   }
-  // ancora a oggi e domani (date locali), non semplicemente ai primi 2 blocchi
+  // ancora a oggi e ai giorni successivi (date locali), fino a 4 giorni
   const today=new Date(); today.setHours(0,0,0,0);
-  const tomorrow=new Date(today.getTime()+86400000);
-  const keys=[dkey(today),dkey(tomorrow)].filter(k=>days[k]);
+  const keys=[];
+  for(let g=0;g<4;g++){
+    const dd=new Date(today.getTime()+g*86400000);
+    const k=dkey(dd);
+    if(days[k]) keys.push(k);
+  }
   const order=[["mattina","Mattina"],["pomeriggio","Pomeriggio"],["notte","Notte"]];
   let html="";
   for(const k of keys){
