@@ -145,6 +145,11 @@
   </div>
 
   <div class="panel">
+    <h2>// UMIDITÀ &middot; 48H+</h2>
+    <div class="chart-box"><canvas id="chHum"></canvas></div>
+  </div>
+
+  <div class="panel">
     <h2>// METEO MARE &middot; 48H+</h2>
     <div class="chart-box"><canvas id="chSea"></canvas></div>
   </div>
@@ -295,6 +300,7 @@ async function load(){
   const prec=w.hourly.precipitation_probability.slice(0,N);
   const wind=w.hourly.wind_speed_10m.slice(0,N);
   const gust=w.hourly.wind_gusts_10m.slice(0,N);
+  const hum=w.hourly.relative_humidity_2m.slice(0,N);
 
   new Chart(document.getElementById("chTemp"),{type:"line",
     data:{labels,datasets:[
@@ -311,6 +317,12 @@ async function load(){
       {label:"Raffiche km/h",data:gust,borderColor:RED,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[5,3]}
     ]},
     options:baseOpts({y:{grid:{color:GRID},ticks:{color:PHOS},title:{display:true,text:"km/h",color:PHOS},beginAtZero:true}})});
+
+  new Chart(document.getElementById("chHum"),{type:"line",
+    data:{labels,datasets:[
+      {label:"Umidità relativa %",data:hum,borderColor:CYAN,backgroundColor:"rgba(51,214,255,.12)",fill:true,tension:.35,pointRadius:0,borderWidth:2}
+    ]},
+    options:baseOpts({y:{grid:{color:GRID},min:0,max:100,ticks:{color:CYAN},title:{display:true,text:"% UR",color:CYAN}}})});
 
   // --- mare ---
   const seaBox=document.getElementById("chSea");
