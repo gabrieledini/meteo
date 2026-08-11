@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>METEO::VIAREGGIO</title>
 <meta name="theme-color" content="#0a0e0a">
-<meta name="description" content="Meteo e meteo mare di Viareggio, previsioni 48h+, stile terminale CRT.">
+<meta name="description" content="Meteo e meteo mare di Viareggio, previsioni fino a 4 giorni, stile terminale CRT.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -63,6 +63,13 @@
   .cond-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
   .cond-desc{font-size:14px;color:var(--phos)}
   .charts{display:grid;grid-template-columns:1fr;gap:16px}
+  .rel-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .rel-row{display:grid;grid-template-columns:110px 1fr 110px;align-items:center;gap:10px;font-size:12px}
+  .rel-lbl{color:var(--phos-dim);letter-spacing:1px;text-transform:uppercase}
+  .rel-bar{height:12px;background:#0a110a;border:1px solid var(--line);position:relative;overflow:hidden}
+  .rel-bar i{display:block;height:100%;box-shadow:0 0 8px currentColor;opacity:.85}
+  .rel-val{color:var(--phos);text-align:right;font-family:'VT323',monospace;font-size:16px}
+  .rel-note{font-size:12px;color:var(--phos-dim);line-height:1.6;border-top:1px dashed var(--line);padding-top:10px}
   .alert-box{border:2px solid var(--red);background:#1a0707;padding:14px 16px;margin-bottom:16px;
     box-shadow:0 0 22px rgba(255,77,77,.35),inset 0 0 30px rgba(255,77,77,.08);animation:alertpulse 1.6s ease-in-out infinite}
   @keyframes alertpulse{0%,100%{box-shadow:0 0 14px rgba(255,77,77,.25),inset 0 0 20px rgba(255,77,77,.06)}50%{box-shadow:0 0 28px rgba(255,77,77,.55),inset 0 0 36px rgba(255,77,77,.12)}}
@@ -135,28 +142,38 @@
   </div>
 
   <div class="panel">
-    <h2>// TEMPERATURA &middot; 48H+</h2>
+    <h2>// TEMPERATURA &middot; 3-4 GIORNI</h2>
     <div class="chart-box"><canvas id="chTemp"></canvas></div>
   </div>
 
   <div class="panel">
-    <h2>// VENTO &middot; 48H+</h2>
+    <h2>// VENTO &middot; 3-4 GIORNI</h2>
     <div class="chart-box"><canvas id="chWind"></canvas></div>
   </div>
 
   <div class="panel">
-    <h2>// UMIDITÀ &middot; 48H+</h2>
+    <h2>// UMIDITÀ &middot; 3-4 GIORNI</h2>
     <div class="chart-box"><canvas id="chHum"></canvas></div>
   </div>
 
   <div class="panel">
-    <h2>// METEO MARE &middot; 48H+</h2>
+    <h2>// METEO MARE &middot; 3-4 GIORNI</h2>
     <div class="chart-box"><canvas id="chSea"></canvas></div>
   </div>
 
   <div class="panel">
     <h2>// PANORAMICA &middot; 2 GIORNI</h2>
     <div id="overview" class="ov-grid"><div class="sub">Calcolo fasce...</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>// ATTENDIBILITÀ PREVISIONI</h2>
+    <div class="rel-grid">
+      <div class="rel-row"><span class="rel-lbl">Oggi &middot; domani</span><span class="rel-bar"><i style="width:92%;background:var(--phos)"></i></span><span class="rel-val">alta ~90%</span></div>
+      <div class="rel-row"><span class="rel-lbl">+2 giorni</span><span class="rel-bar"><i style="width:75%;background:var(--amber)"></i></span><span class="rel-val">buona ~75%</span></div>
+      <div class="rel-row"><span class="rel-lbl">+3 giorni</span><span class="rel-bar"><i style="width:60%;background:var(--cyan)"></i></span><span class="rel-val">indicativa ~60%</span></div>
+    </div>
+    <div class="rel-note">Le previsioni sono più affidabili nelle prime 48 ore. Oltre, l'incertezza cresce: temperatura e vento restano abbastanza stabili, mentre pioggia, temporali e onde diventano solo indicativi. Il modello (Open-Meteo, ICON/GFS) si aggiorna più volte al giorno, quindi conviene ricontrollare per i giorni lontani. Per allerte ufficiali vale sempre il bollettino della Protezione Civile, non questa previsione automatica.</div>
   </div>
 
   <div class="footer">SORGENTE: open-meteo.com &middot; aggiornato <span id="upd">--</span> &middot; nessuna API key richiesta</div>
@@ -251,10 +268,10 @@ async function load(){
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}`+
     `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,wind_gusts_10m,wind_direction_10m`+
     `&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m`+
-    `&timezone=Europe%2FRome&forecast_days=3`;
+    `&timezone=Europe%2FRome&forecast_days=4`;
   const marineUrl=`https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}`+
     `&current=wave_height,wave_direction,wave_period,sea_surface_temperature`+
-    `&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature&timezone=Europe%2FRome&forecast_days=3`;
+    `&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature&timezone=Europe%2FRome&forecast_days=4`;
 
   let w,m=null;
   try{
@@ -292,8 +309,8 @@ async function load(){
   else{document.getElementById("s-wave").innerHTML='--';}
   document.getElementById("upd").textContent=new Date().toLocaleTimeString("it-IT");
 
-  // --- serie orarie (limita a 48h+ -> 60 punti) ---
-  const N=Math.min(w.hourly.time.length,60);
+  // --- serie orarie (limita a 4 giorni -> 96 punti) ---
+  const N=Math.min(w.hourly.time.length,96);
   const labels=w.hourly.time.slice(0,N).map(fmtH);
   const temp=w.hourly.temperature_2m.slice(0,N);
   const app=w.hourly.apparent_temperature.slice(0,N);
@@ -327,7 +344,7 @@ async function load(){
   // --- mare ---
   const seaBox=document.getElementById("chSea");
   if(m&&m.hourly&&m.hourly.wave_height){
-    const Nm=Math.min(m.hourly.time.length,60);
+    const Nm=Math.min(m.hourly.time.length,96);
     const ml=m.hourly.time.slice(0,Nm).map(fmtH);
     const wave=m.hourly.wave_height.slice(0,Nm);
     const period=m.hourly.wave_period.slice(0,Nm);
