@@ -1,4 +1,4 @@
-const CACHE="meteo-vr-v19";
+const CACHE="meteo-vr-v20";
 const ASSETS=[
   "./",
   "./index.html",

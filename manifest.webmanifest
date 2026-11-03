@@ -1,42 +1,26 @@
 {
-  "id": "./",
-  "name": "Meteo Viareggio",
-  "short_name": "Meteo VR",
-  "description": "Meteo e meteo mare di Viareggio, previsioni 48h+, stile terminale CRT.",
+  "name": "Meteo Toscana",
+  "short_name": "Meteo Toscana",
+  "description": "Meteo e meteo mare per i comuni della Toscana, previsioni fino a 4 giorni. App non ufficiale.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
-  "background_color": "#0a0e0a",
-  "theme_color": "#0a0e0a",
+  "background_color": "#eef0f3",
+  "theme_color": "#E3001B",
   "lang": "it",
-  "dir": "ltr",
-  "categories": ["weather", "utilities", "news"],
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }

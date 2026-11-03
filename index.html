@@ -2,211 +2,242 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>METEO::VIAREGGIO</title>
-<meta name="theme-color" content="#0a0e0a">
-<meta name="description" content="Meteo e meteo mare di Viareggio, previsioni fino a 4 giorni, stile terminale CRT.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Meteo Toscana</title>
+<meta name="theme-color" content="#E3001B">
+<meta name="description" content="Meteo e meteo mare per i comuni della Toscana, previsioni fino a 4 giorni. App non ufficiale.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Meteo VR">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Meteo Toscana">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#0a0e0a; --panel:#0d140d; --phos:#33ff66; --phos-dim:#1f8c3d;
-    --amber:#ffb000; --cyan:#33d6ff; --red:#ff4d4d; --line:#143d1f;
+    color-scheme: light;
+    --rt-red:#E3001B; --rt-red-dark:#A3001F;
+    --ink:#1b1c1e; --ink-soft:#5b6066; --ink-faint:#8a9099;
+    --bg:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+    --border:#d6dadf; --border-strong:#b9bfc7;
+    --blue:#0a6aa6; --green:#1f7a34; --amber:#d08a00;
+    --radius:4px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:var(--bg);color:var(--phos);font-family:'IBM Plex Mono',monospace}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
   body{
-    min-height:100vh;padding:18px;
-    background-image:radial-gradient(ellipse at 50% 0%, #0f1a0f 0%, #060906 80%);
+    background:var(--bg);color:var(--ink);
+    font-family:'Titillium Web',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    line-height:1.5;padding-bottom:env(safe-area-inset-bottom,0px);
+    -webkit-font-smoothing:antialiased;
   }
-  body::after{
-    content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
-    background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 2px,rgba(0,0,0,.18) 3px,rgba(0,0,0,0) 4px);
-    mix-blend-mode:multiply;
+  a{color:var(--blue)}
+  /* ---- header istituzionale ---- */
+  .rt-topbar{height:6px;background:var(--rt-red)}
+  .rt-header{
+    background:var(--surface);border-bottom:1px solid var(--border);
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 14px;
   }
-  body::before{
-    content:"";position:fixed;inset:0;pointer-events:none;z-index:98;
-    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%);
+  .rt-header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .rt-mark{font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--rt-red)}
+  .rt-mark span{color:var(--ink-faint);font-weight:400}
+  .rt-title{font-weight:700;font-size:clamp(24px,5vw,34px);line-height:1.1;color:var(--ink)}
+  .rt-title b{color:var(--rt-red)}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  /* ---- selettore comune ---- */
+  .picker{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;position:relative}
+  .picker label{display:block;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+  .picker-field{position:relative}
+  .picker input{
+    width:100%;font-family:inherit;font-size:16px;color:var(--ink);
+    padding:11px 38px 11px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-2);
   }
-  .wrap{max-width:1100px;margin:0 auto;position:relative;z-index:1}
-  h1{
-    font-family:'VT323',monospace;font-size:clamp(34px,7vw,64px);
-    color:var(--phos);letter-spacing:3px;text-shadow:0 0 8px var(--phos),0 0 22px var(--phos-dim);
-    line-height:.95;
-  }
-  .sub{font-size:13px;color:var(--phos-dim);margin:4px 0 18px;letter-spacing:1px}
-  .blink{animation:blink 1.1s steps(1) infinite}
-  @keyframes blink{50%{opacity:0}}
-  .panel{
-    border:1px solid var(--line);background:var(--panel);
-    padding:16px;margin-bottom:16px;position:relative;
-    box-shadow:inset 0 0 30px rgba(51,255,102,.04);
-  }
-  .panel h2{
-    font-family:'VT323',monospace;font-size:24px;color:var(--amber);
-    text-shadow:0 0 6px rgba(255,176,0,.5);letter-spacing:2px;margin-bottom:12px;
-    border-bottom:1px dashed var(--line);padding-bottom:6px;
-  }
-  .now-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-  .stat{border:1px solid var(--line);padding:12px;background:#0a110a}
-  .stat .lbl{font-size:11px;color:var(--phos-dim);letter-spacing:1px;text-transform:uppercase}
-  .stat .val{font-family:'VT323',monospace;font-size:38px;line-height:1;margin-top:4px;color:var(--phos);text-shadow:0 0 8px var(--phos-dim)}
-  .stat .val small{font-size:16px;color:var(--phos-dim)}
-  .stat.hi .val{color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.4)}
-  .stat.sea .val{color:var(--cyan);text-shadow:0 0 8px rgba(51,214,255,.4)}
-  .ascii-icon{font-family:'VT323',monospace;font-size:54px;line-height:1;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
-  .cond-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-  .cond-desc{font-size:14px;color:var(--phos)}
-  .charts{display:grid;grid-template-columns:1fr;gap:16px}
-  .rel-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-  .rel-row{display:grid;grid-template-columns:110px 1fr 110px;align-items:center;gap:10px;font-size:12px}
-  .rel-lbl{color:var(--phos-dim);letter-spacing:1px;text-transform:uppercase}
-  .rel-bar{height:12px;background:#0a110a;border:1px solid var(--line);position:relative;overflow:hidden}
-  .rel-bar i{display:block;height:100%;box-shadow:0 0 8px currentColor;opacity:.85}
-  .rel-val{color:var(--phos);text-align:right;font-family:'VT323',monospace;font-size:16px}
-  .rel-note{font-size:12px;color:var(--phos-dim);line-height:1.6;border-top:1px dashed var(--line);padding-top:10px}
-  .alert-box{border:2px solid var(--red);background:#1a0707;padding:14px 16px;margin-bottom:16px;
-    box-shadow:0 0 22px rgba(255,77,77,.35),inset 0 0 30px rgba(255,77,77,.08);animation:alertpulse 1.6s ease-in-out infinite}
-  @keyframes alertpulse{0%,100%{box-shadow:0 0 14px rgba(255,77,77,.25),inset 0 0 20px rgba(255,77,77,.06)}50%{box-shadow:0 0 28px rgba(255,77,77,.55),inset 0 0 36px rgba(255,77,77,.12)}}
-  .alert-head{font-family:'VT323',monospace;font-size:26px;color:var(--red);letter-spacing:3px;text-shadow:0 0 10px rgba(255,77,77,.7);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .alert-time{font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:1px;color:#1a0707;background:var(--red);padding:3px 10px;border-radius:2px;text-shadow:none;box-shadow:0 0 12px rgba(255,77,77,.6)}
-  .alert-img{display:block;max-width:100%;max-height:340px;margin:10px 0 4px;border:1px solid var(--red);box-shadow:0 0 14px rgba(255,77,77,.25);object-fit:contain}
-  .alert-maps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 4px}
-  .alert-map{display:block;border:1px solid var(--line);background:#0a110a;text-decoration:none;transition:border-color .2s}
-  .alert-map:hover{border-color:var(--red)}
-  .alert-map .map-lbl{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--amber);padding:5px 8px;border-bottom:1px solid var(--line)}
-  .alert-map img{display:block;width:100%;height:auto;background:#fff}
-  .alert-body{font-size:14px;color:#ffd9d9;margin-top:8px;line-height:1.5;white-space:pre-wrap}
-  .alert-foot{font-size:11px;color:#c98;margin-top:8px;letter-spacing:1px}
-  .alert-foot a{color:var(--red)}
-  .ov-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  @media(min-width:900px){.ov-grid{grid-template-columns:repeat(4,1fr)}}
-  @media(max-width:620px){.ov-grid{grid-template-columns:1fr}}
-  .ov-day{border:1px solid var(--line);background:#0a110a}
-  .ov-day .day-h{font-family:'VT323',monospace;font-size:22px;color:var(--amber);letter-spacing:2px;padding:8px 10px;border-bottom:1px dashed var(--line);text-shadow:0 0 6px rgba(255,176,0,.4)}
-  .ov-bands{display:grid;grid-template-columns:repeat(3,1fr)}
-  .ov-band{padding:12px 6px;text-align:center;border-right:1px dashed var(--line)}
-  .ov-band:last-child{border-right:none}
-  .ov-band .bname{font-size:11px;color:var(--phos-dim);letter-spacing:1px;text-transform:uppercase}
-  .ov-band .bicon{font-family:'VT323',monospace;font-size:46px;line-height:1.1;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
-  .ov-band .btemp{font-family:'VT323',monospace;font-size:26px;color:var(--phos);text-shadow:0 0 6px var(--phos-dim)}
-  .ov-band .bdesc{font-size:10px;color:var(--phos-dim);margin-top:2px}
+  .picker input:focus{outline:2px solid var(--rt-red);outline-offset:0;border-color:var(--rt-red);background:#fff}
+  .picker-ico{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--ink-faint);pointer-events:none}
+  .picker-list{list-style:none;position:absolute;left:16px;right:16px;top:100%;z-index:30;background:#fff;border:1px solid var(--border-strong);border-top:none;border-radius:0 0 var(--radius) var(--radius);box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:280px;overflow-y:auto}
+  .picker-list li{padding:10px 12px;cursor:pointer;border-top:1px solid var(--border);font-size:15px}
+  .picker-list li:hover,.picker-list li.active{background:#fdecec}
+  .picker-list li b{color:var(--ink)}
+  .picker-list li small{display:block;color:var(--ink-soft);font-size:12px}
+  .picker-list .empty{color:var(--ink-soft);cursor:default}
+  .picker-list .empty:hover{background:#fff}
+  /* ---- card / pannelli ---- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+  .card h2{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--rt-red);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--rt-red)}
+  .sub{font-size:13px;color:var(--ink-soft)}
+  /* ---- condizioni attuali ---- */
+  .cond-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .cond-ico{font-size:52px;line-height:1}
+  .cond-desc{font-size:18px;font-weight:600;color:var(--ink)}
+  .now-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .stat{border:1px solid var(--border);border-radius:var(--radius);padding:11px 12px;background:var(--surface-2)}
+  .stat .lbl{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft)}
+  .stat .val{font-size:30px;font-weight:700;line-height:1.1;margin-top:3px;color:var(--ink)}
+  .stat .val small{font-size:14px;font-weight:600;color:var(--ink-soft)}
+  .stat.sea .val{color:var(--blue)}
+  .arrow{display:inline-block;font-size:18px;color:var(--rt-red)}
+  /* ---- grafici ---- */
   .chart-box{height:260px;position:relative}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th,td{border:1px solid var(--line);padding:5px 7px;text-align:center}
-  th{color:var(--amber);font-weight:600;letter-spacing:1px}
-  td.t{color:var(--phos)}
-  .scroll{overflow-x:auto}
-  .err{color:var(--red);font-size:14px}
-  .footer{font-size:11px;color:var(--phos-dim);text-align:center;margin-top:8px;letter-spacing:1px}
-  a{color:var(--cyan)}
-  .arrow{display:inline-block;font-size:16px}
+  /* ---- panoramica ---- */
+  .ov-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media(min-width:900px){.ov-grid{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:600px){.ov-grid{grid-template-columns:1fr}}
+  .ov-day{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .ov-day .day-h{font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--rt-red);padding:7px 10px}
+  .ov-bands{display:grid;grid-template-columns:repeat(3,1fr)}
+  .ov-band{padding:12px 6px;text-align:center;border-right:1px solid var(--border)}
+  .ov-band:last-child{border-right:none}
+  .ov-band .bname{font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft)}
+  .ov-band .bicon{font-size:34px;line-height:1.2;margin:2px 0}
+  .ov-band .btemp{font-size:22px;font-weight:700;color:var(--ink)}
+  .ov-band .bdesc{font-size:11px;color:var(--ink-soft);margin-top:2px}
+  /* ---- attendibilità ---- */
+  .rel-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .rel-row{display:grid;grid-template-columns:120px 1fr 120px;align-items:center;gap:10px;font-size:13px}
+  @media(max-width:560px){.rel-row{grid-template-columns:90px 1fr 92px}}
+  .rel-lbl{color:var(--ink-soft);font-weight:600}
+  .rel-bar{height:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .rel-bar i{display:block;height:100%}
+  .rel-val{color:var(--ink);text-align:right;font-weight:700;font-size:13px}
+  .rel-note{font-size:13px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--border);padding-top:10px}
+  /* ---- allerta ---- */
+  .alert-box{border:1px solid var(--rt-red);border-left:6px solid var(--rt-red);background:#fdecec;border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+  .alert-head{font-size:16px;font-weight:700;letter-spacing:.03em;color:var(--rt-red-dark);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .alert-time{font-size:12px;font-weight:700;letter-spacing:.02em;color:#fff;background:var(--rt-red);padding:3px 10px;border-radius:999px}
+  .alert-img{display:block;max-width:100%;max-height:340px;margin:10px 0 4px;border:1px solid var(--rt-red);border-radius:var(--radius);object-fit:contain}
+  .alert-body{font-size:14px;color:var(--ink);margin-top:8px;line-height:1.55;white-space:pre-wrap}
+  .alert-foot{font-size:12px;color:var(--ink-soft);margin-top:10px}
+  .alert-foot a{color:var(--rt-red-dark);font-weight:600}
+  /* ---- footer ---- */
+  .footer{font-size:12px;color:var(--ink-soft);text-align:center;margin:6px 0 10px;line-height:1.6}
+  .disclaimer{font-size:11px;color:var(--ink-faint);text-align:center;margin-bottom:20px;max-width:640px;margin-left:auto;margin-right:auto}
+  .err{color:var(--rt-red-dark);font-size:14px;font-weight:600}
 </style>
 </head>
 <body>
+<div class="rt-topbar"></div>
+<header class="rt-header">
+  <div class="rt-header-inner">
+    <div class="rt-mark">Toscana <span>· meteo</span></div>
+    <h1 class="rt-title">Meteo <b id="comuneTitolo">Viareggio</b></h1>
+  </div>
+</header>
+
 <div class="wrap">
-  <h1>METEO :: VIAREGGIO<span class="blink">_</span></h1>
-  <div class="sub" id="coords">43.87°N 10.25°E &middot; LAT.TIRRENICA &middot; caricamento dati...</div>
+
+  <div class="picker">
+    <label for="comuneInput">Comune della Toscana</label>
+    <div class="picker-field">
+      <input id="comuneInput" type="search" inputmode="search" autocomplete="off"
+             placeholder="Cerca un comune…" aria-label="Cerca un comune della Toscana">
+      <span class="picker-ico">⌕</span>
+      <ul id="comuneList" class="picker-list" hidden></ul>
+    </div>
+    <div class="sub" id="coords" style="margin-top:8px">—</div>
+  </div>
 
   <div id="alertBox" class="alert-box" style="display:none">
-    <div class="alert-head">⚠ ALLERTA METEO <span class="alert-time" id="alertTime"></span></div>
+    <div class="alert-head">⚠ Allerta meteo <span class="alert-time" id="alertTime"></span></div>
     <img class="alert-img" id="alertImg" alt="Immagine allerta" style="display:none">
     <div class="alert-body" id="alertBody"></div>
     <div class="alert-foot" id="alertFoot"></div>
   </div>
 
-  <div class="panel">
-    <h2>// CONDIZIONI ATTUALI</h2>
+  <div class="card">
+    <h2>Condizioni attuali</h2>
     <div class="cond-row">
-      <div class="ascii-icon" id="icon">...</div>
+      <div class="cond-ico" id="icon">·</div>
       <div>
-        <div class="cond-desc" id="cond-desc">Connessione a Open-Meteo...</div>
+        <div class="cond-desc" id="cond-desc">Caricamento dati…</div>
         <div class="sub" id="cond-time"></div>
       </div>
     </div>
-    <div class="now-grid" style="margin-top:14px">
+    <div class="now-grid">
       <div class="stat"><div class="lbl">Temperatura</div><div class="val" id="s-temp">--<small>°C</small></div></div>
       <div class="stat"><div class="lbl">Percepita</div><div class="val" id="s-app">--<small>°C</small></div></div>
-      <div class="stat hi"><div class="lbl">Umidità</div><div class="val" id="s-hum">--<small>%</small></div></div>
+      <div class="stat"><div class="lbl">Umidità</div><div class="val" id="s-hum">--<small>%</small></div></div>
       <div class="stat"><div class="lbl">Vento</div><div class="val" id="s-wind">--<small>km/h</small></div></div>
       <div class="stat"><div class="lbl">Raffiche</div><div class="val" id="s-gust">--<small>km/h</small></div></div>
-      <div class="stat"><div class="lbl">Direzione</div><div class="val" id="s-dir">--</div></div>
-      <div class="stat"><div class="lbl">Nome vento</div><div class="val" id="s-vento" style="font-size:28px">--</div></div>
-      <div class="stat"><div class="lbl">Pressione</div><div class="val" id="s-pres" style="font-size:28px">--<small>hPa</small></div></div>
+      <div class="stat"><div class="lbl">Direzione</div><div class="val" id="s-dir" style="font-size:22px">--</div></div>
+      <div class="stat"><div class="lbl">Nome vento</div><div class="val" id="s-vento" style="font-size:22px">--</div></div>
+      <div class="stat"><div class="lbl">Pressione</div><div class="val" id="s-pres" style="font-size:24px">--<small>hPa</small></div></div>
       <div class="stat sea"><div class="lbl">Onde</div><div class="val" id="s-wave">--<small>m</small></div></div>
     </div>
   </div>
 
-  <div class="panel">
-    <h2>// TEMPERATURA &middot; 3-4 GIORNI</h2>
+  <div class="card">
+    <h2>Temperatura · 3-4 giorni</h2>
     <div class="chart-box"><canvas id="chTemp"></canvas></div>
   </div>
 
-  <div class="panel">
-    <h2>// VENTO &middot; 3-4 GIORNI</h2>
+  <div class="card">
+    <h2>Vento · 3-4 giorni</h2>
     <div class="chart-box"><canvas id="chWind"></canvas></div>
   </div>
 
-  <div class="panel">
-    <h2>// UMIDITÀ &middot; 3-4 GIORNI</h2>
+  <div class="card">
+    <h2>Umidità · 3-4 giorni</h2>
     <div class="chart-box"><canvas id="chHum"></canvas></div>
   </div>
 
-  <div class="panel">
-    <h2>// METEO MARE &middot; 3-4 GIORNI</h2>
+  <div class="card" id="seaCard">
+    <h2>Meteo mare · 3-4 giorni</h2>
     <div class="chart-box"><canvas id="chSea"></canvas></div>
   </div>
 
-  <div class="panel">
-    <h2>// PANORAMICA &middot; 3-4 GIORNI</h2>
-    <div id="overview" class="ov-grid"><div class="sub">Calcolo fasce...</div></div>
+  <div class="card">
+    <h2>Panoramica · 3-4 giorni</h2>
+    <div id="overview" class="ov-grid"><div class="sub">Calcolo fasce…</div></div>
   </div>
 
-  <div class="panel">
-    <h2>// ATTENDIBILITÀ PREVISIONI</h2>
+  <div class="card">
+    <h2>Attendibilità previsioni</h2>
     <div class="rel-grid">
-      <div class="rel-row"><span class="rel-lbl">Oggi &middot; domani</span><span class="rel-bar"><i style="width:92%;background:var(--phos)"></i></span><span class="rel-val">alta ~90%</span></div>
+      <div class="rel-row"><span class="rel-lbl">Oggi · domani</span><span class="rel-bar"><i style="width:92%;background:var(--green)"></i></span><span class="rel-val">alta ~90%</span></div>
       <div class="rel-row"><span class="rel-lbl">+2 giorni</span><span class="rel-bar"><i style="width:75%;background:var(--amber)"></i></span><span class="rel-val">buona ~75%</span></div>
-      <div class="rel-row"><span class="rel-lbl">+3 giorni</span><span class="rel-bar"><i style="width:60%;background:var(--cyan)"></i></span><span class="rel-val">indicativa ~60%</span></div>
+      <div class="rel-row"><span class="rel-lbl">+3 giorni</span><span class="rel-bar"><i style="width:60%;background:var(--blue)"></i></span><span class="rel-val">indicativa ~60%</span></div>
     </div>
-    <div class="rel-note">Le previsioni sono più affidabili nelle prime 48 ore. Oltre, l'incertezza cresce: temperatura e vento restano abbastanza stabili, mentre pioggia, temporali e onde diventano solo indicativi. Il modello (Open-Meteo, ICON/GFS) si aggiorna più volte al giorno, quindi conviene ricontrollare per i giorni lontani. Per allerte ufficiali vale sempre il bollettino della Protezione Civile, non questa previsione automatica.</div>
+    <div class="rel-note">Le previsioni sono più affidabili nelle prime 48 ore. Oltre, l'incertezza cresce: temperatura e vento restano abbastanza stabili, mentre pioggia, temporali e onde diventano solo indicativi. Il modello (Open-Meteo, ICON/GFS) si aggiorna più volte al giorno, quindi conviene ricontrollare per i giorni lontani. Per le allerte ufficiali vale sempre il bollettino della Protezione Civile, non questa previsione automatica.</div>
   </div>
 
-  <div class="footer">SORGENTE: open-meteo.com &middot; aggiornato <span id="upd">--</span> &middot; nessuna API key richiesta</div>
+  <div class="footer">Fonte dati: open-meteo.com · aggiornato <span id="upd">--</span> · allerte dal canale Telegram @gianieugenio</div>
+  <div class="disclaimer">App non ufficiale. Non è un servizio della Regione Toscana; adotta solo i colori e il carattere istituzionali per leggibilità. Per informazioni ufficiali consultare regione.toscana.it e il sistema di allertamento della Protezione Civile.</div>
 </div>
 
 <script>
-const LAT=43.8716, LON=10.2306;
-const WMO={0:["Sereno","\u2600"],1:["Prev. sereno","\u2600"],2:["Parz. nuvoloso","\u26C5"],3:["Coperto","\u2601"],
-45:["Nebbia","\u2592"],48:["Nebbia gelata","\u2592"],51:["Pioviggine","\u2581"],53:["Pioviggine","\u2582"],55:["Pioviggine int.","\u2583"],
-61:["Pioggia debole","\u2602"],63:["Pioggia","\u2602"],65:["Pioggia forte","\u2614"],66:["Pioggia gelata","\u2744"],67:["Pioggia gelata","\u2744"],
-71:["Neve debole","\u2744"],73:["Neve","\u2744"],75:["Neve forte","\u2744"],77:["Granuli neve","\u2744"],
-80:["Rovesci","\u2614"],81:["Rovesci","\u2614"],82:["Rovesci violenti","\u26C8"],85:["Rovesci neve","\u2744"],86:["Rovesci neve","\u2744"],
-95:["Temporale","\u26A1"],96:["Temporale+grandine","\u26C8"],99:["Temporale+grandine","\u26C8"]};
-function wmo(c){return WMO[c]||["Sconosciuto","?"]}
+// ---- stato comune (default Viareggio, con memoria dell'ultima scelta) ----
+let LAT=43.8716, LON=10.2306, COMUNE="Viareggio", PROV="Lucca";
+try{
+  const s=JSON.parse(localStorage.getItem("meteo-comune")||"null");
+  if(s&&typeof s.lat==="number"){ LAT=s.lat; LON=s.lon; COMUNE=s.name; PROV=s.prov||""; }
+}catch(e){}
+
+const WMO={0:["Sereno","\u2600\uFE0F"],1:["Prev. sereno","\u{1F324}\uFE0F"],2:["Parz. nuvoloso","\u26C5"],3:["Coperto","\u2601\uFE0F"],
+45:["Nebbia","\u{1F32B}\uFE0F"],48:["Nebbia gelata","\u{1F32B}\uFE0F"],51:["Pioviggine","\u{1F327}\uFE0F"],53:["Pioviggine","\u{1F327}\uFE0F"],55:["Pioviggine int.","\u{1F327}\uFE0F"],
+61:["Pioggia debole","\u{1F327}\uFE0F"],63:["Pioggia","\u{1F327}\uFE0F"],65:["Pioggia forte","\u{1F327}\uFE0F"],66:["Pioggia gelata","\u{1F328}\uFE0F"],67:["Pioggia gelata","\u{1F328}\uFE0F"],
+71:["Neve debole","\u{1F328}\uFE0F"],73:["Neve","\u2744\uFE0F"],75:["Neve forte","\u2744\uFE0F"],77:["Granuli neve","\u2744\uFE0F"],
+80:["Rovesci","\u{1F326}\uFE0F"],81:["Rovesci","\u{1F326}\uFE0F"],82:["Rovesci violenti","\u26C8\uFE0F"],85:["Rovesci neve","\u{1F328}\uFE0F"],86:["Rovesci neve","\u{1F328}\uFE0F"],
+95:["Temporale","\u26C8\uFE0F"],96:["Temporale+grandine","\u26C8\uFE0F"],99:["Temporale+grandine","\u26C8\uFE0F"]};
+function wmo(c){return WMO[c]||["Sconosciuto","\u2753"]}
 
 // raggruppa i codici WMO in categorie con un simbolo sintetico per la fascia
 function cat(code){
-  if([0,1].includes(code)) return {k:"sereno",ic:"\u2600",d:"Sereno",rank:0};
+  if([0,1].includes(code)) return {k:"sereno",ic:"\u2600\uFE0F",d:"Sereno",rank:0};
   if(code===2)            return {k:"poco",  ic:"\u26C5",d:"Poco nuvoloso",rank:1};
-  if(code===3)            return {k:"coperto",ic:"\u2601",d:"Coperto",rank:2};
-  if([45,48].includes(code)) return {k:"nebbia",ic:"\u2592",d:"Nebbia",rank:2};
-  if([71,73,75,77,85,86].includes(code)) return {k:"neve",ic:"\u2744",d:"Neve",rank:4};
-  if([95,96,99].includes(code)) return {k:"temporale",ic:"\u26C8",d:"Temporale",rank:5};
-  if([51,53,55,61,63,65,66,67,80,81,82].includes(code)) return {k:"pioggia",ic:"\u2614",d:"Pioggia",rank:3};
+  if(code===3)            return {k:"coperto",ic:"\u2601\uFE0F",d:"Coperto",rank:2};
+  if([45,48].includes(code)) return {k:"nebbia",ic:"\u{1F32B}\uFE0F",d:"Nebbia",rank:2};
+  if([71,73,75,77,85,86].includes(code)) return {k:"neve",ic:"\u2744\uFE0F",d:"Neve",rank:4};
+  if([95,96,99].includes(code)) return {k:"temporale",ic:"\u26C8\uFE0F",d:"Temporale",rank:5};
+  if([51,53,55,61,63,65,66,67,80,81,82].includes(code)) return {k:"pioggia",ic:"\u{1F327}\uFE0F",d:"Pioggia",rank:3};
   return {k:"vario",ic:"\u26C5",d:"Variabile",rank:1};
 }
-// fascia oraria da un'ora 0-23
 function band(h){ if(h>=6&&h<13) return "mattina"; if(h>=13&&h<21) return "pomeriggio"; return "notte"; }
 
 function buildOverview(hourly){
   const dkey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  const days={}; // {dateStr:{label,bands:{mattina:[],pomeriggio:[],notte:[]}}}
+  const days={};
   for(let i=0;i<hourly.time.length;i++){
     const dt=new Date(hourly.time[i]);
     const key=dkey(dt);
@@ -216,7 +247,6 @@ function buildOverview(hourly){
     }
     days[key].bands[band(dt.getHours())].push({code:hourly.weather_code[i],t:hourly.temperature_2m[i]});
   }
-  // ancora a oggi e ai giorni successivi (date locali), fino a 4 giorni
   const today=new Date(); today.setHours(0,0,0,0);
   const keys=[];
   for(let g=0;g<4;g++){
@@ -228,11 +258,10 @@ function buildOverview(hourly){
   let html="";
   for(const k of keys){
     const day=days[k];
-    html+=`<div class="ov-day"><div class="day-h">${day.label.toUpperCase()}</div><div class="ov-bands">`;
+    html+=`<div class="ov-day"><div class="day-h">${day.label}</div><div class="ov-bands">`;
     for(const [bk,blabel] of order){
       const arr=day.bands[bk];
-      if(!arr.length){ html+=`<div class="ov-band"><div class="bname">${blabel}</div><div class="bicon">\u00B7</div><div class="btemp">--</div></div>`; continue; }
-      // categoria dominante (moda); a parità vince il rank più severo
+      if(!arr.length){ html+=`<div class="ov-band"><div class="bname">${blabel}</div><div class="bicon">·</div><div class="btemp">--</div></div>`; continue; }
       const freq={};
       arr.forEach(x=>{const c=cat(x.code);freq[c.k]=freq[c.k]||{n:0,c};freq[c.k].n++;});
       let best=null;
@@ -248,24 +277,22 @@ function buildOverview(hourly){
   document.getElementById("overview").innerHTML=html;
 }
 function dirTxt(d){const a=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];return a[Math.round(d/22.5)%16]}
-// nome del vento secondo la rosa mediterranea (direzione di PROVENIENZA)
 function ventoNome(d){
-  const n=[["Tramontana",0],["Grecale",45],["Levante",90],["Scirocco",135],
-           ["Ostro",180],["Libeccio",225],["Ponente",270],["Maestrale",315]];
-  // trova il settore da 45° più vicino
-  const i=Math.round(d/45)%8;
-  return n[i][0];
+  const n=["Tramontana","Grecale","Levante","Scirocco","Ostro","Libeccio","Ponente","Maestrale"];
+  return n[Math.round(d/45)%8];
 }
 function fmtH(iso){const d=new Date(iso);return d.toLocaleString("it-IT",{weekday:"short",hour:"2-digit",minute:"2-digit"})}
 function R(v){return v==null?"--":Math.round(v)}
 
-const PHOS="#33ff66",AMBER="#ffb000",CYAN="#33d6ff",RED="#ff4d4d",GRID="rgba(51,255,102,.08)",DIM="#1f8c3d";
-Chart.defaults.font.family="'IBM Plex Mono',monospace";
-Chart.defaults.color=DIM;Chart.defaults.font.size=10;
+// ---- palette grafici (RT) ----
+const RED="#E3001B",RED_DK="#A3001F",BLUE="#0a6aa6",INK="#1b1c1e",INK_SOFT="#5b6066",GRID="rgba(0,0,0,.08)";
+Chart.defaults.font.family="'Titillium Web',system-ui,sans-serif";
+Chart.defaults.color=INK_SOFT;Chart.defaults.font.size=11;
 
 function baseOpts(extra={}){
   return {responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
-    plugins:{legend:{labels:{color:PHOS,boxWidth:12}},tooltip:{backgroundColor:"#0a110a",borderColor:DIM,borderWidth:1}},
+    plugins:{legend:{labels:{color:INK,boxWidth:12,font:{weight:600}}},
+      tooltip:{backgroundColor:"#fff",titleColor:INK,bodyColor:INK,borderColor:"#ccc",borderWidth:1}},
     scales:Object.assign({x:{grid:{color:GRID},ticks:{maxRotation:60,minRotation:60,autoSkip:true,maxTicksLimit:16}}},extra)}
 }
 
@@ -287,7 +314,7 @@ async function load(){
   }
   catch(e){
     console.error("Open-Meteo forecast:",e);
-    document.getElementById("cond-desc").innerHTML='<span class="err">ERRORE meteo: '+e.message+'</span>';
+    document.getElementById("cond-desc").innerHTML='<span class="err">Errore meteo: '+e.message+'</span>';
     return;
   }
   try{
@@ -301,20 +328,21 @@ async function load(){
   document.getElementById("icon").textContent=ic;
   document.getElementById("cond-desc").textContent=desc;
   document.getElementById("cond-time").textContent=fmtH(c.time);
-  document.getElementById("coords").innerHTML=`${LAT}°N ${LON}°E &middot; VIAREGGIO (LU) &middot; LAT.TIRRENICA`;
+  document.getElementById("coords").textContent=
+    `${COMUNE}${PROV?" ("+PROV+")":""} · ${LAT.toFixed(4)}°N ${LON.toFixed(4)}°E`;
   document.getElementById("s-temp").innerHTML=R(c.temperature_2m)+'<small>°C</small>';
   document.getElementById("s-app").innerHTML=R(c.apparent_temperature)+'<small>°C</small>';
   document.getElementById("s-hum").innerHTML=(c.relative_humidity_2m??"--")+'<small>%</small>';
   document.getElementById("s-wind").innerHTML=R(c.wind_speed_10m)+'<small>km/h</small>';
   document.getElementById("s-gust").innerHTML=R(c.wind_gusts_10m)+'<small>km/h</small>';
-  document.getElementById("s-dir").innerHTML='<span class="arrow" style="transform:rotate('+(c.wind_direction_10m||0)+'deg)">\u2191</span> '+dirTxt(c.wind_direction_10m||0);
+  document.getElementById("s-dir").innerHTML='<span class="arrow" style="display:inline-block;transform:rotate('+(c.wind_direction_10m||0)+'deg)">\u2191</span> '+dirTxt(c.wind_direction_10m||0);
   document.getElementById("s-vento").textContent=(c.wind_direction_10m!=null&&c.wind_speed_10m>0)?ventoNome(c.wind_direction_10m):"Calma";
   document.getElementById("s-pres").innerHTML=R(c.surface_pressure)+'<small>hPa</small>';
   if(m&&m.current){document.getElementById("s-wave").innerHTML=(m.current.wave_height??"--")+'<small>m</small>';}
-  else{document.getElementById("s-wave").innerHTML='--';}
+  else{document.getElementById("s-wave").innerHTML='<small style="font-size:14px">entroterra</small>';}
   document.getElementById("upd").textContent=new Date().toLocaleTimeString("it-IT");
 
-  // --- serie orarie (limita a 4 giorni -> 96 punti) ---
+  // --- serie orarie (4 giorni -> 96 punti) ---
   const N=Math.min(w.hourly.time.length,96);
   const labels=w.hourly.time.slice(0,N).map(fmtH);
   const temp=w.hourly.temperature_2m.slice(0,N);
@@ -326,29 +354,29 @@ async function load(){
 
   new Chart(document.getElementById("chTemp"),{type:"line",
     data:{labels,datasets:[
-      {label:"Temperatura °C",data:temp,borderColor:AMBER,backgroundColor:"rgba(255,176,0,.08)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
-      {label:"Percepita °C",data:app,borderColor:PHOS,borderDash:[4,3],tension:.35,pointRadius:0,borderWidth:1.5},
-      {label:"Prob. pioggia %",data:prec,borderColor:CYAN,yAxisID:"y1",tension:.3,pointRadius:0,borderWidth:1.5}
+      {label:"Temperatura °C",data:temp,borderColor:RED,backgroundColor:"rgba(227,0,27,.08)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
+      {label:"Percepita °C",data:app,borderColor:RED_DK,borderDash:[4,3],tension:.35,pointRadius:0,borderWidth:1.5},
+      {label:"Prob. pioggia %",data:prec,borderColor:BLUE,yAxisID:"y1",tension:.3,pointRadius:0,borderWidth:1.5}
     ]},
-    options:baseOpts({y:{grid:{color:GRID},ticks:{color:AMBER},title:{display:true,text:"°C",color:AMBER}},
-      y1:{position:"right",min:0,max:100,grid:{drawOnChartArea:false},ticks:{color:CYAN},title:{display:true,text:"% pioggia",color:CYAN}}})});
+    options:baseOpts({y:{grid:{color:GRID},ticks:{color:RED},title:{display:true,text:"°C",color:RED}},
+      y1:{position:"right",min:0,max:100,grid:{drawOnChartArea:false},ticks:{color:BLUE},title:{display:true,text:"% pioggia",color:BLUE}}})});
 
   new Chart(document.getElementById("chWind"),{type:"line",
     data:{labels,datasets:[
-      {label:"Vento km/h",data:wind,borderColor:PHOS,backgroundColor:"rgba(51,255,102,.08)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
+      {label:"Vento km/h",data:wind,borderColor:INK,backgroundColor:"rgba(27,28,30,.06)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
       {label:"Raffiche km/h",data:gust,borderColor:RED,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[5,3]}
     ]},
-    options:baseOpts({y:{grid:{color:GRID},ticks:{color:PHOS},title:{display:true,text:"km/h",color:PHOS},beginAtZero:true}})});
+    options:baseOpts({y:{grid:{color:GRID},ticks:{color:INK},title:{display:true,text:"km/h",color:INK},beginAtZero:true}})});
 
   new Chart(document.getElementById("chHum"),{type:"line",
     data:{labels,datasets:[
-      {label:"Umidità relativa %",data:hum,borderColor:CYAN,backgroundColor:"rgba(51,214,255,.12)",fill:true,tension:.35,pointRadius:0,borderWidth:2}
+      {label:"Umidità relativa %",data:hum,borderColor:BLUE,backgroundColor:"rgba(10,106,166,.10)",fill:true,tension:.35,pointRadius:0,borderWidth:2}
     ]},
-    options:baseOpts({y:{grid:{color:GRID},min:0,max:100,ticks:{color:CYAN},title:{display:true,text:"% UR",color:CYAN}}})});
+    options:baseOpts({y:{grid:{color:GRID},min:0,max:100,ticks:{color:BLUE},title:{display:true,text:"% UR",color:BLUE}}})});
 
   // --- mare ---
   const seaBox=document.getElementById("chSea");
-  if(m&&m.hourly&&m.hourly.wave_height){
+  if(m&&m.hourly&&m.hourly.wave_height&&m.hourly.wave_height.some(v=>v!=null)){
     const Nm=Math.min(m.hourly.time.length,96);
     const ml=m.hourly.time.slice(0,Nm).map(fmtH);
     const wave=m.hourly.wave_height.slice(0,Nm);
@@ -356,19 +384,72 @@ async function load(){
     const sst=m.hourly.sea_surface_temperature.slice(0,Nm);
     new Chart(seaBox,{type:"line",
       data:{labels:ml,datasets:[
-        {label:"Altezza onde m",data:wave,borderColor:CYAN,backgroundColor:"rgba(51,214,255,.12)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
-        {label:"Periodo onde s",data:period,borderColor:PHOS,yAxisID:"y1",tension:.35,pointRadius:0,borderWidth:1.5},
-        {label:"Temp. mare °C",data:sst,borderColor:AMBER,yAxisID:"y1",tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]}
+        {label:"Altezza onde m",data:wave,borderColor:BLUE,backgroundColor:"rgba(10,106,166,.12)",fill:true,tension:.35,pointRadius:0,borderWidth:2},
+        {label:"Periodo onde s",data:period,borderColor:INK,yAxisID:"y1",tension:.35,pointRadius:0,borderWidth:1.5},
+        {label:"Temp. mare °C",data:sst,borderColor:RED,yAxisID:"y1",tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]}
       ]},
-      options:baseOpts({y:{grid:{color:GRID},ticks:{color:CYAN},title:{display:true,text:"m",color:CYAN},beginAtZero:true},
-        y1:{position:"right",grid:{drawOnChartArea:false},ticks:{color:PHOS},title:{display:true,text:"s / °C",color:PHOS}}})});
+      options:baseOpts({y:{grid:{color:GRID},ticks:{color:BLUE},title:{display:true,text:"m",color:BLUE},beginAtZero:true},
+        y1:{position:"right",grid:{drawOnChartArea:false},ticks:{color:INK},title:{display:true,text:"s / °C",color:INK}}})});
   } else {
-    seaBox.parentElement.innerHTML='<div class="err">Dati marini non disponibili al momento (marine-api).</div>';
+    document.getElementById("seaCard").innerHTML='<h2>Meteo mare · 3-4 giorni</h2><div class="sub">Dati marini non disponibili per questo comune (località dell\'entroterra o servizio non raggiungibile).</div>';
   }
 
-  // --- panoramica fasce (mattina/pomeriggio/notte) ---
+  // --- panoramica ---
   buildOverview(w.hourly);
 }
+
+// ================= SELETTORE COMUNE (geocoding Open-Meteo, filtro Toscana) =================
+const inp=document.getElementById("comuneInput");
+const list=document.getElementById("comuneList");
+let tmr=null, lastResults=[];
+
+function salvaComune(o){
+  LAT=o.latitude; LON=o.longitude; COMUNE=o.name;
+  PROV=o.admin3||o.admin2||o.admin1||"";
+  try{ localStorage.setItem("meteo-comune",JSON.stringify({lat:LAT,lon:LON,name:COMUNE,prov:PROV})); }catch(e){}
+  document.getElementById("comuneTitolo").textContent=COMUNE;
+  list.hidden=true; inp.value=COMUNE; inp.blur();
+  location.reload(); // ricarica con il nuovo comune (semplice e robusto)
+}
+
+function renderList(items){
+  if(!items.length){
+    list.innerHTML='<li class="empty">Nessun comune toscano trovato</li>';
+    list.hidden=false; return;
+  }
+  list.innerHTML=items.map((o,i)=>{
+    const prov=o.admin3||o.admin2||o.admin1||"";
+    return `<li data-i="${i}"><b>${o.name}</b><small>${prov?prov+" · ":""}Toscana</small></li>`;
+  }).join("");
+  list.hidden=false;
+  [...list.querySelectorAll("li[data-i]")].forEach(li=>{
+    li.addEventListener("click",()=>salvaComune(items[+li.dataset.i]));
+  });
+}
+
+async function cercaComuni(q){
+  const url=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=30&language=it&format=json`;
+  try{
+    const r=await fetch(url); const j=await r.json();
+    // solo Italia e regione Toscana
+    const res=(j.results||[]).filter(x=>x.country_code==="IT" && /tosc/i.test(x.admin1||""));
+    // dedup per nome+provincia
+    const seen=new Set(), out=[];
+    for(const x of res){ const k=x.name+"|"+(x.admin2||""); if(!seen.has(k)){seen.add(k);out.push(x);} }
+    lastResults=out; renderList(out.slice(0,20));
+  }catch(e){
+    list.innerHTML='<li class="empty">Ricerca non disponibile offline</li>'; list.hidden=false;
+  }
+}
+
+inp.addEventListener("input",()=>{
+  const q=inp.value.trim();
+  clearTimeout(tmr);
+  if(q.length<2){ list.hidden=true; return; }
+  tmr=setTimeout(()=>cercaComuni(q),300);
+});
+inp.addEventListener("focus",()=>{ if(list.innerHTML && !list.hidden===false && inp.value.trim().length>=2) list.hidden=false; });
+document.addEventListener("click",(e)=>{ if(!e.target.closest(".picker-field")) list.hidden=true; });
 
 // ---- ALLERTA METEO da canale Telegram (via Netlify Function, no proxy) ----
 const TG_CHANNEL="gianieugenio";
@@ -378,10 +459,11 @@ function alertDebug(msg){
   if(!ALERT_DEBUG) return;
   const box=document.getElementById("alertBox");
   box.style.display="block";
-  box.style.borderColor="#33d6ff";
+  box.style.borderColor="#0a6aa6";
+  box.style.background="#eaf3f9";
   const head=document.querySelector(".alert-head");
-  head.textContent="🛈 DEBUG ALLERTA";
-  head.style.color="#33d6ff";
+  head.textContent="ℹ Debug allerta";
+  head.style.color="#0a6aa6";
   document.getElementById("alertTime").style.display="none";
   document.getElementById("alertBody").textContent=msg;
   document.getElementById("alertFoot").textContent="modalità debug (?debug nell'URL)";
@@ -403,7 +485,7 @@ async function checkAlert(){
   }
   console.log(`[allerta] post:${data.postTotali} recenti:${data.recenti} allerta:${data.allerta?"SÌ":"no"}`);
   if(!data.allerta){
-    alertDebug(`Function OK ✓ · post nel canale: ${data.postTotali}\n`+
+    alertDebug(`Function OK · post nel canale: ${data.postTotali}\n`+
       `Post nelle ultime 24h: ${data.recenti}\n`+
       `Allerte recenti trovate: 0\n`+
       (data.fuoriFinestra>0?`(${data.fuoriFinestra} allerte più vecchie di 24h)\n`:"")+
@@ -424,15 +506,19 @@ async function checkAlert(){
   else { imgEl.style.display="none"; }
   const when=d.toLocaleString("it-IT",{weekday:"long",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
   const url=a.link?`https://t.me/${a.link}`:`https://t.me/s/${TG_CHANNEL}`;
-  document.getElementById("alertFoot").innerHTML=`Pubblicato ${when} &middot; fonte: <a href="${url}" target="_blank" rel="noopener">@${TG_CHANNEL}</a> (Regione Toscana)`;
+  document.getElementById("alertFoot").innerHTML=`Pubblicato ${when} · fonte: <a href="${url}" target="_blank" rel="noopener">@${TG_CHANNEL}</a> (Regione Toscana)`;
   box.style.display="block";
-  console.log("[allerta] banner mostrato ✓");
+  console.log("[allerta] banner mostrato");
  }catch(err){
   console.error("[allerta] errore:",err);
-  alertDebug("ERRORE: function non raggiungibile.\n"+(err&&err.message?err.message:err)+
+  alertDebug("Errore: function non raggiungibile.\n"+(err&&err.message?err.message:err)+
     "\n\nSe sei in locale è normale (serve Netlify). Se sei su Netlify, la function non è deployata.");
  }
 }
+
+// init
+document.getElementById("comuneTitolo").textContent=COMUNE;
+inp.value=COMUNE;
 load();
 checkAlert();
 
