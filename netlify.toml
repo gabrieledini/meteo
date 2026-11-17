@@ -5,3 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# controlla il canale Telegram e invia le push ogni 15 minuti
+[functions."allerta-push"]
+  schedule = "*/15 * * * *"

@@ -114,6 +114,14 @@
   .footer{font-size:12px;color:var(--ink-soft);text-align:center;margin:6px 0 10px;line-height:1.6}
   .disclaimer{font-size:11px;color:var(--ink-faint);text-align:center;margin-bottom:20px;max-width:640px;margin-left:auto;margin-right:auto}
   .err{color:var(--rt-red-dark);font-size:14px;font-weight:600}
+  /* ---- notifiche push ---- */
+  .push-btn{font-family:inherit;font-size:15px;font-weight:600;color:#fff;background:var(--rt-red);border:1px solid var(--rt-red);border-radius:var(--radius);padding:11px 18px;cursor:pointer;margin-top:4px;transition:background .15s}
+  .push-btn:hover{background:var(--rt-red-dark)}
+  .push-btn[disabled]{background:var(--ink-faint);border-color:var(--ink-faint);cursor:not-allowed}
+  .push-btn.off{background:#fff;color:var(--rt-red-dark);border-color:var(--rt-red)}
+  .push-state{font-size:13px;color:var(--ink-soft);margin-top:10px;line-height:1.5}
+  .push-state.ok{color:var(--green);font-weight:600}
+  .push-state.warn{color:var(--amber);font-weight:600}
 </style>
 </head>
 <body>
@@ -200,6 +208,13 @@
       <div class="rel-row"><span class="rel-lbl">+3 giorni</span><span class="rel-bar"><i style="width:60%;background:var(--blue)"></i></span><span class="rel-val">indicativa ~60%</span></div>
     </div>
     <div class="rel-note">Le previsioni sono più affidabili nelle prime 48 ore. Oltre, l'incertezza cresce: temperatura e vento restano abbastanza stabili, mentre pioggia, temporali e onde diventano solo indicativi. Il modello (Open-Meteo, ICON/GFS) si aggiorna più volte al giorno, quindi conviene ricontrollare per i giorni lontani. Per le allerte ufficiali vale sempre il bollettino della Protezione Civile, non questa previsione automatica.</div>
+  </div>
+
+  <div class="card" id="pushCard">
+    <h2>Notifiche allerta meteo</h2>
+    <p class="sub">Ricevi una notifica push sul dispositivo quando viene pubblicata una nuova allerta sul canale @gianieugenio, anche con l'app chiusa.</p>
+    <button id="pushBtn" class="push-btn" disabled>Verifica supporto…</button>
+    <div class="push-state" id="pushState"></div>
   </div>
 
   <div class="footer">Fonte dati: open-meteo.com · aggiornato <span id="upd">--</span> · allerte dal canale Telegram @gianieugenio</div>
@@ -515,6 +530,73 @@ async function checkAlert(){
     "\n\nSe sei in locale è normale (serve Netlify). Se sei su Netlify, la function non è deployata.");
  }
 }
+
+// ================= NOTIFICHE PUSH =================
+let VAPID_PUBLIC=null; // caricata da /.netlify/functions/vapid-public
+const SUB_ENDPOINT="/.netlify/functions/subscribe";
+const VAPID_ENDPOINT="/.netlify/functions/vapid-public";
+async function getVapidPublic(){
+  if(VAPID_PUBLIC) return VAPID_PUBLIC;
+  const r=await fetch(VAPID_ENDPOINT);
+  const j=await r.json();
+  if(!j.ok||!j.key) throw new Error("chiave VAPID pubblica non configurata sul server");
+  VAPID_PUBLIC=j.key; return VAPID_PUBLIC;
+}
+const pushBtn=document.getElementById("pushBtn");
+const pushState=document.getElementById("pushState");
+
+function b64ToUint8(base64){
+  const pad="=".repeat((4-base64.length%4)%4);
+  const b=(base64+pad).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(b); const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+function setPushState(msg,cls){ pushState.textContent=msg; pushState.className="push-state"+(cls?" "+cls:""); }
+
+async function initPush(){
+  const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  if(!supported){
+    pushBtn.textContent="Non supportato";
+    const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    const standalone=window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+    if(ios && !standalone) setPushState("Su iPhone/iPad le notifiche funzionano solo dopo aver installato l'app: premi Condividi → Aggiungi a schermata Home, poi riapri da lì.","warn");
+    else setPushState("Questo browser non supporta le notifiche push.","warn");
+    return;
+  }
+  const reg=await navigator.serviceWorker.ready;
+  const sub=await reg.pushManager.getSubscription();
+  if(sub){ pushBtn.textContent="Disattiva notifiche"; pushBtn.classList.add("off"); pushBtn.disabled=false; setPushState("Notifiche attive su questo dispositivo.","ok"); }
+  else{ pushBtn.textContent="Attiva notifiche"; pushBtn.classList.remove("off"); pushBtn.disabled=false; setPushState(""); }
+
+  pushBtn.onclick=async()=>{
+    pushBtn.disabled=true;
+    const existing=await reg.pushManager.getSubscription();
+    try{
+      if(existing){
+        await fetch(SUB_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({action:"unsubscribe",endpoint:existing.endpoint})});
+        await existing.unsubscribe();
+        pushBtn.textContent="Attiva notifiche"; pushBtn.classList.remove("off"); setPushState("Notifiche disattivate.");
+      }else{
+        const pub=await getVapidPublic();
+        const perm=await Notification.requestPermission();
+        if(perm!=="granted"){ setPushState("Permesso negato. Puoi riattivarlo dalle impostazioni del browser.","warn"); pushBtn.disabled=false; return; }
+        const newSub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToUint8(pub)});
+        const r=await fetch(SUB_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({subscription:newSub})});
+        const j=await r.json().catch(()=>({ok:false}));
+        if(!j.ok) throw new Error(j.error||"registrazione non riuscita");
+        pushBtn.textContent="Disattiva notifiche"; pushBtn.classList.add("off"); setPushState("Notifiche attive su questo dispositivo.","ok");
+      }
+    }catch(e){
+      console.error("push:",e);
+      setPushState("Errore: "+e.message+". Se sei in locale è normale (serve Netlify).","warn");
+    }
+    pushBtn.disabled=false;
+  };
+}
+initPush();
 
 // init
 document.getElementById("comuneTitolo").textContent=COMUNE;

@@ -1,4 +1,4 @@
-const CACHE="meteo-vr-v20";
+const CACHE="meteo-vr-v22";
 const ASSETS=[
   "./",
   "./index.html",
@@ -50,4 +50,28 @@ self.addEventListener("fetch",e=>{
       }))
     );
   }
+});
+
+// ---- notifiche push ----
+self.addEventListener("push", e=>{
+  let d={};
+  try{ d=e.data ? e.data.json() : {}; }catch(_){ d={ body: e.data ? e.data.text() : "" }; }
+  const title=d.title||"Allerta meteo Toscana";
+  const opts={
+    body:d.body||"Nuova allerta pubblicata sul canale.",
+    icon:"icon-192.png", badge:"icon-192.png",
+    tag:"allerta-meteo", renotify:true,
+    data:{ url:d.url||"./" }
+  };
+  e.waitUntil(self.registration.showNotification(title,opts));
+});
+self.addEventListener("notificationclick", e=>{
+  e.notification.close();
+  const url=(e.notification.data && e.notification.data.url) || "./";
+  e.waitUntil(
+    clients.matchAll({type:"window",includeUncontrolled:true}).then(wins=>{
+      for(const w of wins){ if("focus" in w){ w.navigate && w.navigate(url); return w.focus(); } }
+      if(clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });
