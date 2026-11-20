@@ -1,6 +1,6 @@
 // Salva/rimuove le subscription push in Netlify Blobs.
 // Endpoint: /.netlify/functions/subscribe  (POST)
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 function json(obj, code=200){
   return { statusCode:code, headers:{ "Content-Type":"application/json", "Access-Control-Allow-Origin":"*" }, body:JSON.stringify(obj) };
@@ -13,6 +13,7 @@ function keyFor(endpoint){
 exports.handler = async (event) => {
   if(event.httpMethod!=="POST") return json({ ok:false, error:"method not allowed" }, 405);
   try{
+    connectLambda(event);
     const body = JSON.parse(event.body||"{}");
     const store = getStore("push-subs");
 

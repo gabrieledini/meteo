@@ -2,11 +2,12 @@
 // e invia una notifica push a tutti gli iscritti. Evita i duplicati memorizzando
 // l'ultima allerta già notificata.
 // Schedule impostato in netlify.toml (ogni 15 minuti).
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 const webpush = require("web-push");
 
-exports.handler = async () => {
+exports.handler = async (event) => {
   try{
+    connectLambda(event);
     if(!process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_PUBLIC_KEY){
       console.warn("Chiavi VAPID non impostate: push non inviabili.");
       return { statusCode:200, body:"no vapid keys" };
